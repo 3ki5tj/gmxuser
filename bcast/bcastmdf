@@ -1,0 +1,94 @@
+#!/bin/bash
+if [ $# -lt 2 ] ; then
+  echo "require two argument, e.g. put tigger    or get cave"
+  exit 1
+fi
+
+gmxname=gromacs
+
+if [ $2 = "tigger" ] ; then
+  echo "transfer: $1 tigger"
+  dest=czhang@tigger.rice.edu:$gmxname
+elif [ $2 = "cave" ] ; then
+  echo "transfer: $1 cave"
+  dest=czhang@10.12.18.201:$gmxname
+elif [ $2 == "archive" ] ; then
+  echo "transfer: $1 archive"
+  dest=../../../archive/${gmxname}4
+elif [ $2 == "sugar" ] ; then
+  echo "transfer: $1 sugar"
+  dest=cz1@sugar.rice.edu:$gmxname
+elif [ $2 == "stic" ] ; then
+  echo "transfer: $1 stic"
+  dest=cz1@stic.rice.edu:$gmxname
+elif [ $2 == "ada" ] ; then
+  echo "transfer: $1 ada"
+  dest=cz1@ada.rice.edu:$gmxname
+elif [ $2 == "gpu" ] ; then
+  echo "transfer: $1 gpu"
+  dest=cz1@badlands.rcsg.rice.edu:$gmxname
+elif [ $2 == "bigbend02" ] ; then
+  echo "transfer: $1 bigbend02"
+  dest=cz1@bigbend02.rice.edu:$gmxname
+elif [ $2 == "biou" ] ; then
+  echo "transfer: $1 biou"
+  dest=cz1@biou.rice.edu:$gmxname
+else
+  echo "unknown target $2"
+  exit 1
+fi
+
+src=.
+tools="../tools"
+mdlib="../mdlib"
+gmxlib="../gmxlib"
+topol="../../share/top"
+if [ $1 = "put" ] ; then
+  from="$src/"
+  from_tools="$tools/"
+  from_mdlib="$mdlib/"
+  from_gmxlib="$gmxlib/"
+  from_include="../../include/"
+  from_include2="../../include/types/"
+  from_topol="$topol/"
+  to="$dest/src/kernel"
+  to_tools="$dest/src/tools"
+  to_mdlib="$dest/src/mdlib"
+  to_gmxlib="$dest/src/gmxlib"
+  to_include="$dest/include/"
+  to_include2="$dest/include/types/"
+  to_topol="$dest/share/top"
+elif [ $1 = "get" ] ; then
+  from="$dest/src/kernel/"
+  from_tools="$dest/src/tools/"
+  from_mdlib="$dest/src/mdlib/"
+  from_gmxlib="$dest/src/gmxlib/"
+  from_include="$dest/include/"
+  from_include2="$dest/include/types/"
+  from_topol="$dest/share/top"
+  to="$src"
+  to_tools="$tools/"
+  to_mdlib="$mdlib/"
+  to_gmxlib="$gmxlib/"
+  to_include="../../include/"
+  to_include2="../../include/types/"
+  to_topol="$topol/"
+else
+  echo "unknown action $1"
+  exit 1
+fi
+
+rsync -avz "$from"{*.c,*.h,bcastmd,bcastmdf,Makefile.am,Makefile.in} "$to"
+rsync -avz "$from_gmxlib"{*.c,Makefile.am,Makefile.in} "$to_gmxlib"
+rsync -avz "$from_mdlib"{*.c,Makefile.am,Makefile.in} "$to_mdlib"
+rsync -avz "$from_tools"{*.c,Makefile.am,Makefile.in} "$to_tools"
+rsync -avz "$from_include"{*.h,Makefile.am,Makefile.in} "$to_include"
+rsync -avz "$from_include2"{*.h,Makefile.am,Makefile.in} "$to_include2"
+rsync -avz "$from_top"{*} "$to_topol"
+rsync -ravz --exclude "*[o~]" --exclude ".deps" --exclude ".libs" \
+  --exclude "Makefile" --exclude "Makefile.in" --exclude "*.la" \
+  --exclude "*.1" --exclude "*.cmt" --exclude "*v[0-9]" \
+  --exclude "kernel-stamp" --exclude "mknb" \
+  --exclude "nb_kernel[0-9][0-9][0-9]_c.c" --exclude "nb_kernel[0-9][0-9][0-9].h" \
+  "$from_gmxlib"* "$to_gmxlib"/
+

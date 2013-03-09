@@ -1,0 +1,22 @@
+spider.py
+
+Code structure
+===============
+* CC:       generic code changer (cc.py)
+            e.g., remove a line, find a code block, etc.
+* CCGMX:    common changes for GROMACS, based on CC (ccgmx.py)
+
+
+File structure
+===============
+spider0.py
+  ccmdxv4.5.py    grab code from modules
+  ccobj.py:       create obj code 
+    ccgmx.py      code changes to gromacs
+      cc.py       generic code changes
+
+
+* the v4.0 versions are indep. of the v4.5 versions
+* atspider.py is left for compatibility (it depends on cc.py and ccgmx.py)
+
+

@@ -1,0 +1,10 @@
+#!/bin/bash
+
+rm -f TRACE
+
+dataid=1
+while [ -d data$dataid ] ; do
+  cat data$dataid/TRACE >> TRACE
+  dataid=$(($dataid+1)) ;
+done;
+

@@ -1,0 +1,317 @@
+=====================================
+Accelerated tempering (md1) README
+=====================================
+
+
+`md1' is a program for accelerated tempering based on an integral identity.
+It is a stand-alone program independent of mdrun (the main engine of GROMACS).
+In this sense, it acts more like a plugin.
+The code is based on the current stable version of GROMACS 4.0.7 with a few
+more recent patches from the git repository.
+
+The user interface (command line options, input files) of `md1' is mostly
+identical to that of `mdrun'.
+However, it can only do molecular dynamics, not energy minimization,
+normal modes, free energy, as the latter functions are removed for simplicity.
+
+
+INSTALL
+---------------------------
+
+First you need to download and unzip GROAMCS to a directory, which
+will be refered to as GROMACS_ROOT in the follows.
+Then copy all the .c and .h files to GROMACS_ROOT/src/kernel/.
+
+You also need to change makefiles. There are two ways to do so.
+
+1. The lazy way
+   If your source code tree is identical to the official version,
+   then simply copy Makefile.am and Makefile.in in the package to
+   GROMACS_SOURCE_ROOT/src/kernel. But make sure you make a copy
+   of the original files!
+
+2. Change makefiles manually
+   If you've ever changed the source code tree, this is the recommended
+   way of changing makefiles.
+   You need to have GNU autotools installed.
+
+   Modify `Makefile.am' under the same directory as follows:
+    2A. Add md1 to bin_PROGRAMS
+    2B. Add the following two lines
+          md1_SOURCES = md1.c
+          md1.$(OBJEXT): md1core.h mb1.h zcom1.h
+    2C. Run autotools,
+        If you can find a script called `bootstrap' under GROMACS_SOURCE_ROOT
+        just run the script. Otherwise, try:
+          automake && autoconf
+        If it again fails, run
+          aclocal && acheader && automake && autoconf
+
+After that, goto GROMACS_SOURCE_ROOT and enter
+  ./configure and make.
+
+
+How to run md1
+---------------------------
+
+Generally, md1 behaves similarly to mdrun.  The only difference is that
+it requires a configuration file, at.cfg, for additional information
+for tempering, such as the temperature range, and window size for
+using the integral identities.  The name of the file (at.cfg) can be
+changed through the command line option "-at your_file.cfg".
+See the next section for how to write such a file.
+
+In addition to the configuration file, you need to prepare a topology
+(.tpr file) acceptable by mdrun, then simply change the command
+from mdrun to md1.
+
+At the end of a simulation, you will have a few output files
+in addition to the standard GROMACS ones.
+
+  mb.av:                binary, accumulated data about the potential energy.
+  mbav_file             mbav_file is the corresponding file name in configuration
+                        file (at.cfg).
+                        To change the default file name, e.g. to mbav.bin, add a line
+                            mbav_file=mbav.bin
+
+  hist.bin:             binary, histogram-like data of the energy histograms
+  ehist_file
+
+  MTSEED:               random number generator (RNG) state for resuming a run.
+  rng_file              The RNG is independent of GROMACS's own RNG.
+
+  TRACE:                text, the instantaneous temperature, energy, etc, saved at
+  trace_file            a regular interval (nsttrace in at.cfg)
+
+  ZE:                   text, the calculated the partition function (column 2),
+  ze_file               average energy (column 3 & 5) as a function of the reciprocal
+                        temperature beta (column 1).
+
+  HMB:                  text, reconstructed energy histograms at a few typical temperatures.
+  ehist_mbin_file
+
+You can continue a run starting from a checkpoint using the -cpi option.
+In this case, also make sure the average file `mb.av', the energy histogram
+file `hist.bin' (if energy histogram is enabled) and the random number generator
+state `MTSEED' from the previous run are under the current running directory or can be
+reached by the corresponding paths provided by mbav_file, ehist_file and rng_file.
+
+ZE and HMB are not essential.  They are produced regularly to help user
+check the simulation results.
+
+
+Configuration file at.cfg
+---------------------------
+
+at.cfg is independent of the standard .mdp of GROMACS. Because in this way,
+it can be reused in other simulations (in our case, model systems).
+
+Normally at.cfg should be placed under the directory where you run the program.
+When the program starts running, it will first try to read information
+from at.cfg. If it is absent, the program simply quits.  Alternatively,
+you can supply a configuration file path by passing command line option
+`-at xxx.cfg' to md1.  For example, by the following command
+
+  md1 -s foo.tpr -at path/to/your.cfg
+
+The program md1 will use the configuration file path/to/your.cfg instead
+of the default at.cfg under the current running directory.
+
+The format of the file is a collection of straightforward assignments
+
+   variable=value
+
+For example,
+
+    T0=400
+
+means that the variable T0 (the thermostat temperature) is 400K.
+Unless specified otherwise, the GROMACS units are assumed
+(temperature: K, length: nm, time: ps).
+
+at.cfg adopts a free-style format:
+o  You can add spaces before and/or after `='.
+o  Blank lines and spaces before the variable are ignored.
+o  Semicolon `;' is used to start comments.
+
+Thus, a line like
+
+   T0 =   400.0 ; the thermostat temperature
+
+is equivalent to
+
+   T0=400
+
+Most variables in the configuration file share the names as those in the source code.
+You might want to inspect the source code for their precise meaning.
+Here are a few most important ones,
+
+1. The temperature range is expressed by the reciprocal temperature
+   beta = 1.0/(kB T), where kB is the Boltzmann constant.
+
+  beta_min=0.200
+  beta_max=0.410
+
+  In GROMACS, the Boltzmann constant is 0.008314511212... .
+  Thus beta=0.2 corresponds to roughly 600K, while
+  beta=0.405 is roughly 300K (i.e., kT = 2.5 kJ / mol).
+
+2. The temperature bin size,
+
+  beta_del=0.0002
+
+  This is value used to perform integral identity, 0.0002 is proper for
+  an explicit solvent system 3000~4000 water molecules.  You might
+  need to reduce this value for larger systems, or increase the value for
+  smaller systems.
+
+  A smaller bin size means more memory and a little more computational
+  effort to loop over bins. Usually they are not a big problem.
+
+3. The thermostat temperature
+
+  T0=400
+
+  In the code, we scale the instantaneous force instead of the temperature
+  to achieve tempering.
+  In other words, we only apply tempering to the potential energy
+  part of the partition function.
+
+  Z = sum exp(- beta E)
+    = sum exp{ -beta0 [(beta/beta0) E] }
+
+  In this way, we can keep the thermostat temperature constant (the
+  velocities are also not scaled).
+
+4. The generalized ensemble is specified by a weighting function w(beta).
+  Usually, for an explicit solvent simulation, w(beta) being simply
+  proportional to beta^(-factor), is sufficient, where `factor' is
+  specified by
+
+  ensemble_factor=1.0
+
+  Theoretically, the optimal value for the ensemble factor should be 0.5
+  for an explicit solvent simulation (see the paper). A larger value biases
+  the ensemble toward the high temperature (hotter) end.
+
+  Now for implicit solvent simulation, you might want to focus
+  on a particular temperature, (around the expected melting temperature).
+  In this case, we *experimentally*
+  provide a modulation to the weighting function
+
+    w(beta) ~ beta^(-f) {1+ A*exp[-(1/2) (beta-b_C)^2/sigma^2 ]}
+
+  the three parameters A, b_C and sigma correspond to
+  ensemble_amp, ensemble_focus  and ensemble_dbeta, respectively.
+  However, this is still an experimental code and not fully tested.
+
+5. Integral identity parameters.  They share a prefix `mbest_'
+  because they are called Multiple-Bin ESTimators initially.
+
+  mbest_mbin_mode=1
+  mbest_delta_lnT=0.03
+
+  The two parameters determine how a temperature window (beta_-, beta_+)
+  is drawn for a particular temperature beta.
+
+  In mbest_mbin_mode 0:
+    you need to specify mbest_delta_beta,
+    beta_- = beta – mbest_delta_beta
+    beta_+ = beta + mbest_delta_beta
+
+  In mbest_mbin_mode 1:
+    you need to specify mbest_delta_lnT,
+    beta_- = beta exp(- mbest_delta_lnT)
+    beta_+ = beta exp(+ mbest_delta_lnT)
+
+  In mbest_mbin_mode 2:
+    you need to specify mbest_delta_kT,
+    1.0/beta_- = 1.0/beta + mbest_delta_kT
+    1.0/beta_+ = 1.0/beta - mbest_delta_kT
+
+  We usually choose mode 1, since it gives high a temperature a wider window,
+  but not too much.
+
+  ------
+
+   mbest_order=1
+   mbest_regularize=2
+   mbest_fracmin=0
+
+   these are technical parameters: the first one specifies the order of the
+   auxiliary function phi(beta), see the paper; the second request a bin
+   average first and then window average; the third is the minimal of a+/a-.
+
+6. The adaptive tempering parameters
+  shrinkamp=0.10
+  shrink_mbin_adjust=1
+  shrink0=0.01
+  shrinkmin=0
+
+  shrinkamp is the magnitude of adaptive averaging,
+  the C_gamma in the paper, shouldn be around 0.1.
+  The instantaneous damping factor is calculated as
+    gamma = 1 - shrinkamp/ t,
+  where t is proportional to the number of simulation steps.
+  A larger shrinkamp encourages a fast random walk in the temperature
+  space, however, it leads to a slower convergence in terms of
+  thermodynamics.
+
+  shrink_mbin_adjust means adjusting the magnitude according to
+  the temperature window used in the integral identity.
+
+  shrink0 is the maximal allowable magnitude, i.e., the minimal
+  damping factor gamma (as in the paper) is 1-shrink0
+
+  shrinkmin is lower limit of 1-gamma. Usually, we set it to zero,
+  so we can continuously improve convergence.  And ultimately the
+  simulation becomes an optimized simulated tempering.  However, if
+  you want the system move faster than an equilibrium sampling,
+  you can set shrinkmin to a small value, such as 1e-8~1e-6.
+
+7. Energy histograms settings.
+  If you do not need energy histogram, simply set ehist_mode=0 to disable it.
+  When it is used, the following is a typical setup.
+
+  ehist_mode=1
+  ehist_skip=20
+  ehist_min=-126000
+  ehist_max=-86000
+  ehist_del=20
+  ehist_mbin_mode=1
+  ehist_delta_lnT=0.01 (or ehist_delta_beta or ehist_delta_kT)
+
+  ehist_mode: 0 off, 1 on
+  ehist_skip: when writing a text file for energy distributions, skip this
+              number of temperatures before proceeding to the next one.
+  ehist_min/ehist_max: the energy range (system dependent!)
+  ehist_del: the energy bin size
+  ehist_mbin_mode/ehist_delta_lnT: similar to mbest_mbin_mode/mbest_delta_lnT
+    but for energy histograms
+
+
+8. Other parameters
+
+  nsttrace=1000
+
+  how often to write a TRACE (current temperature, energy, etc. …)
+  It is recommended to be set to the same as nstxtcout (or nstxout) in .mdp file.
+  In this way, quantities in TRACE will match frames in the saved trajectories.
+
+  mbav_binary=1
+
+  To save accumulated data in binary format (recommended).
+  However, it means that
+
+  nstav=1000000
+  nsthist=1000000
+
+  How often to save data, no need to be very often, unless you are impatient.
+  nstav is for `mb.av' and `ZE', nsthist is for `hist.bin' and `HMB'.
+
+
+Reference
+-------------
+
+Zhang and Ma, J. Chem. Phys. 132, 244101 (2010)
+

@@ -1,0 +1,86 @@
+
+
+Overview about mdX programs
+=============================
+* All files use src/kernel/CMakefile.txt instead of autotools, so Makefile.am is not modified.
+
+* Examples: X = 1 (md1), 2 (md2), or go (mdgo)
+
+* mdX.c includes mdXutil.h includes mdXcore.h
+
+* mdX.c is pure gromacs engine
+  in fact md1.c and md2.c are almost the same
+
+* mdXutil.c is the "glue", modifications to attach mdXcore.c
+
+* mdXcore.c is our own code, sometimes uses og.py to generate code
+  that is, we write a mdXcore.0.c and then run
+    og.py mdXcore.c
+  such that mdXcore.0.c --> mdXcore.c
+
+Code generation
+=================
+Just run
+  ./spider.py
+
+
+md1 and md2
+====================
+md1.c md1util.c
+md2.c md2util.c
+can be automatically updated by spider.py
+More about spider.py can be read from
+  spider.py -h
+
+But be cautious, check the difference from the lastest backup in
+  bak/md2util.h.1 bak/md2.c.1
+
+md1.c and md2.c are mostly the same,
+md2util.c embeds the content of do_force(), while md1util.c only make the function call
+
+Additionally, we have mdXcore.h, these are for our own (non-GROMACS) code.
+Normally, we edit mdXcore.0.h, then run og.py to generate mdXcore.h
+Here, we simply link the GROMACS 4.0 version to here,
+ (the 0.h files are not linked to avoid confusion)
+
+md3 (deprecated, merged md2)
+=============================
+tools iibb.c
+
+md3 handles dihedrals
+
+Note md3.c and md3util.c is not automatically updated by spider.py
+cp md2.c md3.c
+change
+#include "md2util.h"
+to
+#include "md3util.h"
+
+Note, md3bb.0.h --> md3.h,  md3core.0.h --> md3core.h by using og.py
+These steps are summarized in GNUmakefile, and could be simply invoked by
+  make md3
+
+
+mdgo (deprecated)
+==================
+copy: md2.c --> mdgo.c
+copy: md2util.h --> mdgoutil.h
+edit mdgocore.0.h, which goes to mdgocore.h
+
+currently contacts are built from all atom pairs
+bonded atoms are not excluded
+
+atgmx_init()
+  at_open()
+    at_loadxref(fnpdb)
+  atgmx_checkxreftop()
+
+command line options
+  -mode 0  constant lambda
+  -mode 1  convergintg to fixed goenergy
+  -mode 2  use tmh
+
+configuration parameters
+* monitoring parameters
+nstcheckf:  frequency of checking force
+nstgorep:   frequency of reporting

@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# deprecated use bcast.py if possible
+
+if [ $# -lt 1 ] ; then
+  echo "require an argument, e.g. tigger"
+  exit 1
+fi
+
+gmxname=gromacs
+where=$1
+
+if [ $where = "tigger" ] ; then
+  echo "transfer: $where"
+  addr=czhang@tigger.rice.edu
+  dest=$addr:$gmxname
+elif [ $where = "cave" ] ; then
+  echo "transfer: $where"
+  addr=czhang@10.12.18.201
+  dest=$addr:$gmxname
+elif [ $where = "archive" ] ; then
+  echo "transfer: $where"
+  addr=../archive
+  dest=$addr/${gmxname}4
+elif [ $where = "sugar" ] ; then
+  echo "transfer: $where"
+  addr=cz1@sugar.rice.edu
+  dest=$addr:$gmxname
+elif [ $where = "stic" ] ; then
+  echo "transfer: $where"
+  addr=cz1@stic.rice.edu
+  dest=$addr:$gmxname
+elif [ $where = "ada" ] ; then
+  echo "transfer: $where"
+  addr=cz1@ada.rice.edu
+  dest=$addr:$gmxname
+elif [ $where = "gpu" ] ; then
+  echo "transfer: $where"
+  addr=cz1@badlands.rcsg.rice.edu
+  dest=$addr:$gmxname
+elif [ $where = "bigbend02" ] ; then
+  echo "transfer: $where"
+  addr=cz1@bigbend02.rice.edu
+  dest=$addr:$gmxname
+elif [ $where = "biou" ] ; then
+  echo "transfer: $where"
+  addr=cz1@biou.rice.edu
+  dest=$addr:$gmxname
+else
+  echo "unknown target $1"
+  exit 1
+fi
+
+rsync -ravz --exclude=".*" --exclude="build" --exclude="build_*" --exclude="*~" \
+  --exclude="autom4te.cache" \
+  --exclude="test" --exclude="oldver" ./* $dest/
+
+if [ $where = "tigger" ] ; then
+  # also bcast to other rice machines
+  if [ $2 = "all" ] ; then
+    ssh $addr 'cd gromacs; ./bcastall sugar make; ./bcastall stic make; ./bcastall biou make'
+  fi
+else
+  # remotely make after the bcastall is done
+  if [ $2 = "make" ] ; then
+    ssh $addr 'cd ~/gromacs/build; make; cd ~/gromacs/build_mpi; make '
+    #ssh $addr 'source ~/.bashrc; mkgmx '
+  fi
+fi
+

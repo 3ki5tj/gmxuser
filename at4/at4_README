@@ -1,0 +1,142 @@
+mdX.c
+  |
+  +-- mdXutil.h
+      |
+      +-- mdXcore.h
+            |
+            +-- mbX.h
+            |     |
+            |     +-- zcomX.h
+            |
+            +-- md2spb.h
+            |     |
+            |     +-- zcomX.h
+            |
+            +-- zcomX.h
+
+mdX.c can be
+  created by md_t.c with a version specialization by genver.py
+  alternately created by spider.py
+
+mdXutil.h can be
+  created by md_tutil.h with version specialization by genver.py
+
+mdXcore.h can be
+  created by md_tcore.h with version specialization by genver.py
+     created by md_tcore.0.h with object generation
+
+zcom.h can also be
+  zcom1.h zcom2.h
+
+o version specialization is performed by genver.py
+  which can be run individually or through updmd.py
+
+o og.py generates XXX.0.h --> XXX.h
+  an expanded version with automatic functions are generate from .0.h templates
+  og.py is also called by updmd.py
+  og.py is in ~/work/common/objgen/
+  a direct call looks like this
+    og.py XXX.h
+
+
+*******************************************************************************
+
+md1.c  tempering simulation
+md2.c  high temperature biased tempering
+
+zcom.h common routines,
+
+mb[0-9].h integral identity generate from the template mb_t.h
+
+
+Tools (toys)
+==============
+amberize
+        o make a regular PDB more friendly to ffamber
+        o for GROMACS 4.0 only, 4.5 has its only AMBER support
+
+mkspx
+        o make spirial like beta conformation from an amino acid sequence
+
+xdihs
+        o analyse (backbone) dihedral distribution
+
+mqsub
+        o job submission tool
+
+dihmb
+        o display dihedral angle information for .xtc & other format
+        o an example of reading .xtc file
+
+md2conv (for md2 preparation run)
+        o tool for separating peaks from potential of mean force
+          and adjust their relative proportions
+
+spbmb
+        o multiple-bin estimator for two independent dihedral distributions
+        o read/write spb.mb
+
+iibb (formerly bbmb)
+        o multiple-bin estimator for joint distribution of the two dihedrals
+        o utility
+
+mhex
+        o example of using multiple-histogram method
+        o not using zcom.h
+        o oldver/egxtc.c a further simplification
+
+dihmb1
+        o overall phi/psi dihedral distribution
+        o dihderal profile
+
+ncontact
+        o contact number
+
+vdist
+        o chiral distribution, measured from vertical distance from helix C to the plane of helices A and B
+        o helix distance
+
+clusmb
+        o clustering program
+
+mhidx
+        o generate a list of frames pertinent to 300K
+
+rmsdis
+        o compute 300K RMSD distribution from the native
+
+rmsfilter
+        o filter 300K frames with rmsd in (rmsd_min, rmsd_max)
+
+Code management
+============================
+GNUmakefile
+  updmd.py
+    genver.py
+    zcompick.py
+    og.py
+
+GNUmakefile
+        o a fake makefile that helps to compile code at other VPATH directories
+        o calls updmd.py
+
+updmd.py
+        o master code manager for md1, md2, ...
+        o calls genver.py to manage md1.c, md2.c
+        o calls zcompick.py to manage zcom1.c, zcom2.c
+        o calls og.py (through command line) to convert *.0.h to *.h
+          generate auto functions, e.g., md2spb.0.h --> md2spb.h
+
+genver.py
+        o version specialization from a template
+        o converts abc_t.h to abc1.h
+        o depending on flags like #if ABC_VER == 0
+        o md_t.c to md1.c, md2.c, ...
+
+zcompick.py
+        o creates zcom1.h, zcom2.h from zcom.h
+
+md1_pack
+        o creates a package for md1
+
+

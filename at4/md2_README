@@ -1,0 +1,25 @@
+spb_dopro:   proline
+spb_dogly:   glycine
+spb_doter:   terminal
+
+The following options are derived from an integer, premode,
+    which is specified by the command line option of md2 as
+      -atpre premode
+    premode is 0 during a production run,
+    or 1 in common preparation mode
+
+spb_updstat: update data
+             true if premode is an odd, false if even
+
+spb_active:  apply a biased pmf for dihedrals
+             true if premode == 0 or <= 8
+
+spb_binref:  load reference distribution from spb.bin/pre.bin
+             true if premode % 4 == 3 or 0,
+             i.e., premode 0,  3, 4, 7, 8, 11, 12, ...
+
+spb_initclr: clear data initially
+             may be used to inspect de novo distribution
+             true if premode > 0 and premode % 8 == 5, 6, 7, or 0
+
+see also md1_README
