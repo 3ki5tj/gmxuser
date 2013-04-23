@@ -1,0 +1,98 @@
+==============
+building FFTW
+==============
+
+For Gromacs 4.6, the option is avaiable
+-DGMX_BUILD_OWN_FFTW=ON
+
+The FFTW source/build are put under gmx for convenience
+
+The install version is under
+$HOME/work/gmx/fftw/app
+
+To use in GROMACS
+export CPPFLAGS=-I$HOME/work/gmx/fftw/app/include
+export LDFLAGS=-L$HOME/work/gmx/fftw/app/lib
+
+
+list of common flags
+=====================
+--enable-float,     compile float version instead of the double version (== --enable-single)
+--enable-shared,    make shared library (.so) _in addition to_ static library (.a)
+                    necessary, if GROMACS build is GROMACS is shared library
+                    if also builds the static library, so always use --enable-shared
+--enable-sse2,      unclear the difference from  --enable-sse in the float case
+                    online manual recommend to use --enable-sse2
+--enable-threads,   make threads version (_threads) _in addition to_ the usual version
+                    not sure if it is needed in GROMACS
+
+
+
+
+32bit and 64bit versions
+===========================
+32-bit goes to app32, home computer, prime, is 32-bit
+64-bit goes to app == app64, Pettitt lab computer is 64-bit
+
+
+
+64-bit versions
+===================
+
+
+build (float static version)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cd fftw-3.3.3
+mkdir buildgcc && cd buildgcc
+../configure --enable-float --enable-sse2 --prefix=$HOME/work/gmx/fftw/app64
+make
+make install
+
+
+(double static version)
+~~~~~~~~~~~~~~~~~~~~~~~
+mkdir buildgccdbl && cd buildgccdbl
+../configure --enable-sse2 --prefix=$HOME/work/gmx/fftw/app64
+make
+make install
+
+
+(shared version)
+~~~~~~~~~~~~~~~~~~~~~~~
+mkdir buildgcc_shared && cd buildgcc_shared
+../configure --enable-shared --enable-float --enable-sse2 --prefix=$HOME/work/gmx/fftw/app64
+make
+make install
+
+
+(shared double version)
+~~~~~~~~~~~~~~~~~~~~~~~~
+mkdir buildgcc_shared && cd buildgcc_shared
+../configure --enable-shared --enable-sse2 --prefix=$HOME/work/gmx/fftw/app64
+make
+make install
+
+
+
+32-bit version
+=====================
+
+(shared 32-bit version)
+~~~~~~~~~~~~~~~~~~~~~~~
+mkdir buildgcc32_shared && cd buildgcc32_shared
+../configure CC=gcc CXX=g++ F77=gfortran \
+  --enable-shared --enable-float --enable-sse2 --enable-threads \
+  --prefix=$HOME/work/gmx/fftw/app32
+make
+make install
+
+
+(shared 32-bit double version)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+mkdir buildgcc32dbl_shared && cd buildgcc32dbl_shared
+../configure CC=gcc CXX=g++ F77=gfortran \
+  --enable-shared --enable-sse2 --enable-threads \
+  --prefix=$HOME/work/gmx/fftw/app32
+make
+make install
+

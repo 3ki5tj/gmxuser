@@ -1,0 +1,74 @@
+Gromacs 4.5 code notes
+=============================
+
+Overall structure
+~~~~~~~~~~~~~~~~~~~
+main(), kernel/mdrun.c
+  * mdrunner(), kernel/runner.c
+    # spawning threads (kernel/runner.c)
+    * integrator[inputrec->eI].func()
+      * do_md(), kernel/md.c
+        # MD main loop starts at line 689 (the tag is, however,  at 605)
+        * do_force(), line 1024, mdlib/sim_util.c
+        * update_coords(), line 1495, mdlib/update.c
+          * do_update_md(), line 120, mdlib/update.c
+
+
+Threads in mdrunner()
+~~~~~~~~~~~~~~~~~~~~~
+* get_nthreads()
+* mdrunner_start_threads()
+  # tMPI_Init_fn(TRUE, nthreads, mdrunner_start_fn, mda) gmxlib/thread_mpi/
+                 mainthread returns
+    $ mdrunner_start_fn()
+      % mdrunner()
+cr (t_commrec *) is now reliable
+
+
+
+constraints
+~~~~~~~~~~~~
+call sequence
+do_md(), kernel/md.c
+  * update(), mdlib/udpate.c
+    * constrain(), mdlib/constr.c
+
+mdlib/constr.c
+  init_constraints()
+    low_constrain()
+  constrain()
+    low_constrain()
+
+low_constrain()
+  init_lincs()
+  constrain_lincs()
+  bshakef()
+  csettle()  mdlib/csettle.c
+
+
+Ewald sum (charge interaction)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+include/types/enums.h
+enum {
+  eelCUT,     eelRF,     eelGRF,   eelPME,  eelEWALD,  eelPPPM,
+  eelPOISSON, eelSWITCH, eelSHIFT, eelUSER, eelGB, eelRF_NEC, eelENCADSHIFT,
+  eelPMEUSER, eelNR
+};
+
+
+Force routines
+~~~~~~~~~~~~~~~~
+Files:
+mdlib/force.c,    do_force_lowlevel()
+gmxlib/bondfree.c, calc_bonds()
+
+
+
+
+
+
+do_force(), mdlib/sim_util.c
+  force(), mdlib/force.c
+    do_ewald(), mdlib/ewald.c
+

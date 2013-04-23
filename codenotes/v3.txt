@@ -1,0 +1,47 @@
+Gromacs 3.3.4 code notes
+=============================
+
+mdrun
+~~~~~~~~
+main(), kernel/mdrun.c
+  * mdrunner(), kernel/md.c
+  * do_md(), kernel/md.c
+    MD main loop starts at line 508
+    * do_force(), mdlib/sim_util.c
+
+
+constraints
+~~~~~~~~~~~~
+call sequence
+do_md(), kernel/md.c
+  * update(), mdlib/udpate.c
+    * constrain(), mdlib/constr.c
+
+mdlib/constr.c
+  init_constraints()
+    low_constrain()
+  constrain()
+    low_constrain()
+
+low_constrain()
+  init_lincs()
+  constrain_lincs()
+  bshakef()
+  csettle()  mdlib/csettle.c
+
+
+Ewald sum (charge interaction)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+include/types/enums.h
+enum {
+  eelCUT,     eelRF,     eelGRF,   eelPME,  eelEWALD,  eelPPPM,
+  eelPOISSON, eelSWITCH, eelSHIFT, eelUSER, eelGB, eelRF_NEC, eelENCADSHIFT,
+  eelPMEUSER, eelNR
+};
+
+
+do_force(), mdlib/sim_util.c
+  force(), mdlib/force.c
+    do_ewald(), mdlib/ewald.c
+

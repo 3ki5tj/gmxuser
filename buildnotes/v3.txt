@@ -1,0 +1,30 @@
+Gromacs 3.3.4
+=============================
+
+I use the zip version, not remotely clone from git repo.
+Because it configure file
+Since it's so old, no worry about updates
+A git repo. is initialized by myself
+  git init
+  git add *
+  git commit -a
+
+
+
+
+======================================
+build v3.3 (float, single processor)
+======================================
+build fftw first (see build.txt)
+
+export CPPFLAGS=-I/run/media/cz1/linuxdata/work/gmx/fftw/app/include
+export LDFLAGS=-I/run/media/cz1/linuxdata/work/gmx/fftw/app/lib
+mkdir buildgcc && cd buildgcc
+./configure
+make
+
+The executables are under
+/run/media/cz1/linuxdata/work/gmx/gromacs3/buildgcc/src/kernel
+
+
+

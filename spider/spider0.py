@@ -17,14 +17,14 @@ version = 1
 
 # default input file
 finp = '''
-/* %OBJ_DECL% */
-/* %OBJ_FUNCS% */
-/* %BONDFREE_C% */
-/* %FORCE_C% */"
-/* %SIMUTIL_C% */
-/* %MD_C% */"
-/* %RUNNER_C% */
-/* %MDRUN_C% */
+/* $OBJ_DECL */
+/* $OBJ_FUNCS */
+/* $BONDFREE_C */
+/* $FORCE_C */"
+/* $SIMUTIL_C */
+/* $MD_C */"
+/* $RUNNER_C */
+/* $MDRUN_C */
 '''.splitlines(True)
 
 

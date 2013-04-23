@@ -1,0 +1,10 @@
+Gromacs 4.6
+=============================
+
+Overview
+=========
+ *  structure change (src/kernel --> src/programs/mdrun)
+ *  start to use C++ code
+ *  no autotools
+
+

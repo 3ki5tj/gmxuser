@@ -1,0 +1,52 @@
+======================
+test case 1VII.pdb
+======================
+
+~/work/gmx/gromacs3/buildgcc/src/kernel/test
+
+
+
+# generate the first prototype
+cd ~/work/gmx/gromacs3/buildgcc/src/kernel
+mkdir test && cd test
+../pdb2gmx -f 1VII.pdb -o a.gro -p villin.top -ignh
+
+# we now change box size
+../../tools/editconf -f a.gro -o box.gro -bt dodecahedron -d 1.2
+
+# add water
+../../tools/genbox -cp box.gro -cs spc216.gro -p villin.top -o sol.gro
+
+
+# add ions
+Since the system has net charge of +2.0, we add two Cl-.
+
+../grompp -v -f min.mdp -c sol.gro -p villin.top -o sol.tpr
+../../tools/genion -s sol.tpr -o ion.gro -nn 2 -pname NA+ -nname CL-
+  see also options like -conc and -neutral
+select 12, or whatever number, for SOL to replace water
+Edit villin.top, in the end, decrease the number of water molecules by 2,
+and append a line
+  CL- 2
+to the end.  Change "CL-" to "CL" for AMBER force fields.
+
+
+Download em.mdp
+../grompp -v -f em.mdp -c ion.gro -p villin.top -o em.tpr
+../mdrun -v -deffnm em -c em.gro
+
+Download pr.mdp
+../grompp -v -f pr.mdp -c em.gro -p villin.top -o pr.tpr
+../mdrun -v -deffnm pr -c pr.gro
+
+
+Download md.mdp
+../grompp -v -f md.mdp -c pr.gro -p villin.top -o md.tpr
+../mdrun -v -deffnm md -c md.gro
+
+
+
+
+
+
+

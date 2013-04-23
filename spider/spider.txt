@@ -1,5 +1,7 @@
 spider.py
 
+Run it under GROMACS 4/4.5 src/kernel
+
 Code structure
 ===============
 * CC:       generic code changer (cc.py)
@@ -11,7 +13,7 @@ File structure
 ===============
 spider0.py
   ccmdxv4.5.py    grab code from modules
-  ccobj.py:       create obj code 
+  ccobj.py:       create obj code
     ccgmx.py      code changes to gromacs
       cc.py       generic code changes
 

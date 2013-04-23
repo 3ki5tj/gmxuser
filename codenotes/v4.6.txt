@@ -1,0 +1,10 @@
+Gromacs 4.6 code notes
+=============================
+
+mdrun
+~~~~~~~~
+cmain(), src/programs/mdrun/mdrun.c
+  open log files
+  * mdrunner(), src/programs/mdrun/runner.c
+
+

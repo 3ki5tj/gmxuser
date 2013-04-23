@@ -1,0 +1,45 @@
+Gromacs 4.0
+===============
+
+Overview
+=========
+ *  the parallelism is through MPI, threads are not used.
+ *  it has domain-decomposition
+ *  no GPU (OpenMM)
+ *  the building system is autotools, not cmake
+ *  no implicit solvent, AMBER force field needs extra import
+
+
+
+Build
+=======
+
+build a home version
+~~~~~~~~~~~~~~~~~~~~~
+mkdir buildgcc32 && cd buildgcc32
+../configure CC=gcc CXX=g++ FC=gfortran F77=gfortran \
+  CPPFLAGS=-I$HOME/work/gmx/fftw/app32/include \
+  LDFLAGS=-L$HOME/work/gmx/fftw/app32/lib \
+  --enable-shared --disable-share-dir
+make
+ln -s ../share .
+
+Notes:
+~~~~~~
+ *  --disable-share-dir is my modification, see sharedir.txt
+    use only in the `at4' git branch
+ *  do not `make install'
+ *  if code structure is changed, run bootstrap in root dir.
+
+
+
+Common options
+===============
+--enable-shared,    build shared library
+--enable-mpi,
+--enable-fortran,   use fortran kernel
+
+
+
+
+

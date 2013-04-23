@@ -1,0 +1,68 @@
+Gromacs 4.5
+============
+
+
+Overview
+=========
+ *  the parallelism can be done through MPI, or tMPI (thread version
+    pretending to be MPI)
+ *  GPU (OpenMM) build in
+ *  build-in AMBER/CHARMM force field with implicit
+ *  the preferred building system is cmake, although autotools still exist
+ *  still C based code
+
+
+build v4.5 (float, shared, 32-bit)
+=====================================================
+build fftw first (see build.txt)
+
+mkdir buildgcc32 && cd buildgcc32
+cmake .. -DCMAKE_C_COMPILER=gcc \
+  -DCMAKE_CXX_COMPILER=g++ \
+  -DCMAKE_INCLUDE_PATH=$HOME/work/gmx/fftw/app32/include \
+  -DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app32/lib
+make
+
+Notes:
+ *  for the assembler, may needs -DCMAKE_ASM-ATT_COMPILER=as
+ *  does not appear to need fortran
+ *  `make VERBOSE=1'  to produce more detailed compiling log
+
+The executables are under
+$HOME/work/gmx/gromacs45/buildgcc32/src/kernel
+
+
+
+build v4.5 (default: float, shared, 64-bit)
+=====================================================
+
+* install g++, sudo apt-get install g++
+* install libxml2, sudo apt-get install libxml2-dev
+* install fftw, see build.txt
+
+mkdir buildgcc && cd buildgcc
+cmake .. -DCMAKE_INCLUDE_PATH=$HOME/work/gmx/fftw/app/include \
+         -DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app/lib
+make
+
+The executables are under
+$HOME/work/gmx/gromacs45/buildgcc/src/kernel
+
+
+
+build v4.5 (float, static, 64-bit)
+=====================================================
+build fftw first (see build.txt)
+
+mkdir buildgcc_static && cd buildgcc_static
+cmake .. -DBUILD_SHARED_LIBS=OFF \
+  -DCMAKE_INCLUDE_PATH=$HOME/work/gmx/fftw/app/include \
+  -DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app/lib
+make
+
+The executables are under
+$HOME/work/gmx/gromacs45/buildgcc/src/kernel
+
+
+
+

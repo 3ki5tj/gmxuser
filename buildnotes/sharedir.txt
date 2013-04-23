@@ -1,0 +1,54 @@
+Diable making the shared directory
+===================================
+
+The purpose is to always synchronize the /share directory
+
+
+v4.0 (autoconf & automake)
+============================
+
+In configure.ac, add
+
+    ### ENABLE_SHARE_DIR
+    AC_ARG_ENABLE(share-dir,
+                  [AC_HELP_STRING([--disable-share-dir],
+                                  [Disable the share directory, handle it by yourself.])],, enable_share_dir=yes)
+
+    if test "$enable_share_dir" = "yes"; then
+      AM_CONDITIONAL([ENABLE_SHARE_DIR], [true])
+    else
+      AM_CONDITIONAL([ENABLE_SHARE_DIR], [false])
+    fi
+
+and add an if clause to AC_CONFIG_FILES
+
+    if test "enable-share-dir" = "yes"; then
+    AC_CONFIG_FILES([ share/Makefile ])
+    ...
+    fi
+
+
+In Makefile.am, add
+
+    if ENABLE_SHARE_DIR
+    SHAREDIR=share
+    else
+    SHAREDIR=
+    endif
+
+    SUBDIRS = include src admin scripts $(SHAREDIR) man
+
+
+v4.5 (CMakefile.txt)
+=====================
+
+comment the following two lines
+
+  # set(DATA_INSTALL_DIR ${CMAKE_INSTALL_PREFIX}/share/gromacs)
+  # set(MAN_INSTALL_DIR  ${CMAKE_INSTALL_PREFIX}/share/man)
+
+comment the following two lines
+
+  # add_subdirectory(share)
+  # add_subdirectory(man)
+

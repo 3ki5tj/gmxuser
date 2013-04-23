@@ -1,0 +1,40 @@
+build v4.6 (cmake)
+===================
+cd gromacs
+mkdir build
+cd build
+cmake ..
+make
+
+Notes, with internet access use -DGMX_BUILD_OWN_FFTW=ON
+
+
+buildgcc v4
+============
+../configure --enable-shared CPPFLAGS=-I$HOME/work/gmx/fftw/app/include LDFLAGS=-I$HOME/work/gmx/fftw/app/lib
+
+
+building FFTW
+~~~~~~~~~~~~~
+see build_fftw.txt
+
+
+static linking
+~~~~~~~~~~~~~~
+cmake .. -DBUILD_SHARED_LIBS=OFF
+
+
+Install on a different directory
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/app
+
+
+Enable GPU
+~~~~~~~~~~
+cmake .. -DGMX_GPU=ON -DCUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda
+
+
+Enable MPI
+~~~~~~~~~~
+cmake .. -DGMX_MPI=ON
+

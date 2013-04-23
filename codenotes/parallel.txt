@@ -1,0 +1,16 @@
+GROMACS parallelism
+====================
+
+Overview
+========
+* MPI for GROMACS 4.0, also tMPI for GROMACS 4.5
+* for v4.5, tMPI_ functions masked the MPI_ functions
+* MPI_ functions usually have gmx_ versions (gmxlib/network.c)
+    e.g., gmx_bcast() calls MPI_Bcast()
+
+
+Functions
+=========
+MASTER(cr)    cr->nodeid == 0, include/types/commrec.h
+PAR(cr)       cr->nnodes > 1, include/types/commrec.h
+

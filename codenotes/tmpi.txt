@@ -1,0 +1,77 @@
+GROMACS thread MPI
+===================
+
+Overview
+---------
+* available after GROMACS 4.5
+* code in gmxlib/thread_mpi
+* useful in a multicore CPU
+* compiled by default, useful no additional flag needed
+* GMX_MPI and GMX_THREADS are defined
+* MPI functions are automatically mapped to the tMPI functions
+  + e.g., MPI_Init --> tMPI_Init
+  + see include/thread_mpi/mpi_bindings.h, which is included in include/tmpi.h
+
+
+
+Calling mdrunner()
+~~~~~~~~~~~~~~~~~~~
+
+Thread MPI was used to start mdrunner() in multiple copies.
+
+* mdrunner_start_threads()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    only the master thread gets called
+    invoked in mdrunner() if MASTER(cr) is true
+    calls tMPI_Init_fn(TRUE, nthreads, mdrunner_start_fn, mda)
+      the master threads returns immediately, due to the argument TRUE
+          so mdrunner_start_fn() won't be called in the master node
+
+  * mdrunner_start_fn(void *mda)
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+      each nonmaster thread gets this call
+      converts `mda' to (struct mdrunner_arglist *)
+      then calls mdrunner() on this thread
+      the newly created threads makes MASTER(cr) untrue, so that
+          mdrunner_start_threads() won't be called in these cases
+
+
+    Master                                             Nonmaster
+-------------------------------------------------------------------------------
+mdrunner()
+        |
+  nthreads = get_nthreads();
+        |
+  cr = mdrunner_start_threads(nthreas);
+        |
+    tMPI_Init_fn(TRUE, mdrunner_start_fn,..);       mdrunner_start_fn();
+        |                                                   |
+    return crn = init_par_threads(cr);                cr = init_par_threads();
+        |                                                   |
+  go back to mdrunner()                               mdrunner(cr);
+
+
+
+tmpi_init.c
+~~~~~~~~~~~~
+
+Global variables
+-------------------
+struct tmpi_threads *threads;
+int nthreads;
+
+
+
+* tMPI_Init_fn(main_thread_returns, nthreads, func, arg), tmpi_init.c
+  # tMPI_Thread_get_hw_number()
+  # tMPI_Start_threads(), tmpi_init.c
+    allocate global vars. threads[]
+    set threads[i].start_fn etc.
+    $ tMPI_Thread_create(..., &threads[i]);
+    start the main thread
+    $ tMPI_Thread_init( &thread[0] );
+
+
+
+tMPI_Malloc == malloc, tmpi_init.c
+
