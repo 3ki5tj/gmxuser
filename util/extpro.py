@@ -2,7 +2,7 @@
 
 '''
 extract the protein structure in pdb format
-in a frame (for Gromacs 4.0)
+in a frame (for Gromacs 4.0 only)
 '''
 
 import re, os, sys, glob, getopt, shutil, subprocess, math, random

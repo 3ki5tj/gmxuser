@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-''' run simulation from a pdb (amberized) '''
+''' run simulation from a pdb (amberized) for GROMACS 4.0 '''
 from math import *
 from copy import copy
 import sys, os, subprocess, getopt, shutil, re, random, glob
