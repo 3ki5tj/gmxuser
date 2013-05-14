@@ -1,0 +1,20 @@
+
+source files
+-------------
+  * include/types/gmx_wallcycle.h
+  * mdlib/gmx_wallcycle.c
+
+struct output_env
+{
+    time_unit_t time_unit; /* the time unit, enum defined in include/oenv.h
+                              time_fs, time_ps, ... */
+    gmx_bool view;  /* view of file requested */
+    xvg_format_t xvg_format; /* xvg output format, enum defined in statutil.h */
+    int  verbosity; /* The level of verbosity for this program */
+    int debug_level; /* the debug level */
+
+    char *program_name; /* the program name */
+    char *cmd_line; /* the re-assembled command line */
+};
+
+

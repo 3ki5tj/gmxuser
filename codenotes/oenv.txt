@@ -1,0 +1,57 @@
+Overview
+=========
+  * output_env_t
+  * from v4.5
+
+
+
+Source files
+============
+  * include/types/oenv.h    empty declaration:
+                            typedef struct output_env *output_env_t;
+  * include/oenv.h          function prototypes, defines
+                            `struct output_env;'
+  * gmxlib/oenv.c           code
+
+
+
+Structure
+=========
+
+typedef struct output_env *output_env_t;
+
+struct output_env
+{
+    time_unit_t time_unit; /* the time unit, enum defined in oenv.h
+                              timeNULL, time_fs, ... */
+    gmx_bool view;  /* view of file requested */
+    xvg_format_t xvg_format; /* xvg output format, enum defined in statutil.h */
+    int  verbosity; /* The level of verbosity for this program */
+    int debug_level; /* the debug level */
+
+    char *program_name; /* the program name */
+    char *cmd_line; /* the re-assembled command line */
+};
+
+
+
+Functions
+=========
+
+snew(oenv, 1);
+
+output_env_init(oenv, argc, argv);
+    + copies the command line
+    + called by parse_common_args() in statutil.c
+
+output_env_done(oenv);
+
+  called by init_md();
+    called by do_md();
+
+For reruns:
+
+  called by read_first_frame(oenv), defined in gmxlib/trxio.h
+        and read_next_frame(oenv),
+    called by do_md(), defined in kernel/md.c
+

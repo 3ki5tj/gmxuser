@@ -1,0 +1,23 @@
+Source Files
+------------
+src/gmxlib/smalloc.c
+include/smalloc.h
+
+
+Functions
+---------
+
+snew() in smalloc.h
+~~~~~~~~~~~~~~~~~~~
+* the C version calls save_calloc(), in smalloc.c
+  which calls calloc() or malloc(),
+  followed by memset() to zero the allocated memory
+  basically == calloc()
+
+
+sfree() in smalloc.h
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* calls save_free(), in smalloc.c
+  which in turn calls free()
+  so it is basically == free()
+

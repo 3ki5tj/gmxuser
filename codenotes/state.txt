@@ -1,0 +1,59 @@
+t_state
+========
+
+Source files
+------------
+include/type/state.h
+gmxlib/typedefs.h
+gmxlib/tpxio.h
+
+Structure
+----------
+typedef struct {
+  int natoms;
+  int ngtc; /* # of thermostats === # of Nose-Hoover chains */
+  int nnhpres;
+  int nhchainlength; /* # of harmonic oscillators in each Nose-Hoover chain */
+  int nrng, nrngi;
+  int flags;
+  real lambda;
+  matrix box, box_rel, boxv;
+  matrix pres_prev, svir_prev, fvir_prev;
+  double nosehoover_xi[ngtc*nhchainlength];
+  double nosehoover_vxi[ngtc*nhchainlength];
+  double nhpres_xi[nnhpres*nhchainlength]; /* for Nose-Hoover pressure coupling */
+  double nhpres_vxi[nnhpres*nhchainlength]; /* for Nose-Hoover pressure coupling */
+  double therm_integral[ngtc];
+  int nalloc;
+  rvec *x, *v, *sd_X, *cg_p;
+  unsigned int *ld_rng;
+  int *ld_rngi;
+} t_state;
+
+
+
+Functions
+-----------
+
+Initialization
+~~~~~~~~~~~~~~
+snew(state, 1);
+* read_tpx_state(fn, inputrec, state, NULL, mtop);  in gmxlib/tpxio.c
+  * do_tpx(ir, state, mtop);  in gmxlib/tpxio.c
+    * init_state(state, natoms, ngtc, nnhpres, nhchainlength);  in gmxlib/typedefs.c
+      # allocate state->x, ->v
+      # clear ->box, ->box_rel, ->boxv, ...
+
+      * init_gtc_state(state);   in gmxlib/typedefs.c
+        allocate nosehoover_xi, nosehoover_vxi, therm_integral
+                 nhpres_xi, nhpres_vxi
+
+* set_state_entries(state, inputrec, nnodes);  in mdlib/init.c
+  allocate sd_X, ld_rng, ld_rngi
+  no network calls, nnodes is used as a multiple of ld_rng entries
+
+  call init_gtc_state(state) again;  in gmxlib/typedefs.c
+
+* done_state(state);
+  free state->x, ->v, ->sd_X, ->cg_p, ->cg_gl;
+

@@ -1,0 +1,140 @@
+Domain decopmosition
+======================
+
+Overview
+---------
+ o init_domain_decomposition()
+ o make_dd_communicators() separates PP/PME nodes 
+     cr->duty =  DUTY_PP (1) or DUTY_PME (2);
+   then by using `cr->duty' as the group id, and calling MPI_Comm_split
+     we get a communicator among all PP nodes.
+     and another communicator among all PME nodes.
+
+Files
+------
+types/commrec.h
+mdlib/domdec.c
+mdlib/domdec_setup.c
+mdlib/domdec_top.c
+mdlib/domdec_con.c
+
+
+Functions
+----------
+
+dd_collect_vec_sendrecv(dd, lv, v);
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+collect values of `lv' at different nodes,
+save to the `v' on the master
+
+  if ( !DDMASTER(dd) ) {
+    /* send to the master */
+    MPI_Send(lv, ..., DDMASTER(dd), ...);
+  } else {
+    /* copy data on this node */
+    copy_rvec(lv, v);
+
+    /* loop node by node */
+    for (; n < dd->nnodes;)
+      MPI_Recv(buf, ..., n, ...);
+      /* copy from buf to v */
+      copy_rvec(buf, v);
+  }
+
+
+
+dd_collect_vec(dd, state_local, lv, v);
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    dd_collect_cg(dd, state_local);
+    dd_collect_vec_sendrecv(dd, lv, v);
+  or
+    dd_collect_vec_gatherv(dd, lv, v);
+
+
+dd_collect_state(dd, state_local, state);
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  copy data from `state_local' to `state'
+
+  on the master node, copy veta, box, boxv
+
+  dd_collect_vec(dd, state_local->x, state->x);
+
+
+
+
+structures defined in domdec.c
+-------------------------------
+gmx_domdec_master_t;
+gmx_domdec_ind_t;
+gmx_domdec_com_dim_t;
+gmx_domdec_root_t;
+gmx_domdec_load_t;
+gmx_cgsort_t;
+gmx_domdec_sort_t;
+vec_rvec_t;
+gmx_ddpme_t;
+gmx_ddzone_t;
+gmx_domdec_comm_t;
+
+
+dd = init_domain_decomposition(cr, nc)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  copy_ivec(nc, dd->nc);
+  dd_choose_grid(dd);
+
+
+
+dd_choose_grid(dd)
+~~~~~~~~~~~~~~~~~~
+defined in domdec_setup.c
+
+    if (cr->nnodes <= 10)
+      cr->npmenodes = -1;
+    else
+      cr->npmenodes = guess_npme();
+
+    if ( MASTER(cr) ) {
+      optimize_ncells(dd->nc);
+        * defined in domdec_setup.c,
+          calls assign_factors(dd, ..., nc);
+    }
+
+    gmx_bcast(dd->nc);
+
+
+
+
+make_dd_communicators()
+~~~~~~~~~~~~~~~~~~~~~~~~
+  copy_ivec(dd->nc, comm->ntot);
+  if (cr->npmenodes > 0)
+    split_communicator(cr);
+  else
+    cr->mpi_comm_mygroup = cr->mpi_comm_mysim;
+  if (cr->duty & DUTY_PP)
+    make_pp_communicator(cr);
+  dd->pme_nodeid = dd_simnode2pmdnode(cr, cr->sim_nodeid);
+  dd->ma = init_gmx_domdec_master_t();
+
+
+
+split_communicator()
+---------------------
+  periods[0..DIM-1] = TRUE;
+  MPI_Cart_create(cr->mpi_comm_mysim, DIM, comm->ntot, periods,
+    reorder, &comm_cart);
+  MPI_Comm_rank(comm_cart, &rank);
+  cr->mpi_comm_mysim = comm_cart;
+  cr->sim_nodeid = rank;
+  
+  cr->duty = DUTY_PP or DUTY_PME;
+  MPI_Comm_split(cr->mpi_comm_mysim, cr->duty,
+    dd_index(comm->ntot, dd->ci), &cr->mpi_mygroup);
+
+
+make_pp_communicator()
+------------------------
+  MPI_Cart_create(cr->mpi_comm_mygroup, DIM, dd->nc, periods,
+                  &comm_cart);
+  cr->mpi_comm_mygroup = comm_cart;
+

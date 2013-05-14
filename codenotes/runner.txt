@@ -1,0 +1,69 @@
+mdrun.c & runner.c
+===================
+
+mdrun.c/main()
+---------------
+  cr = init_par(&argc, &argv);
+    * defined in gmxlib/main.c
+
+  parse_common_args(&argc, argv);
+
+  init_multisystem(cr);
+    * defined in gmxlib/main.c, see cr.txt
+    * setup replica exchange
+
+  read_checkpoint_simulation_part();
+
+  mdrunner(fplog, cr);
+
+
+
+runner.c/mdrunner()
+-------------------
+
+  if (MASTER(cr))
+    read_tpx_state();
+    mdrunner_start_threads();
+
+  init_parallel(fplog, cr, ir, mtop);
+    * defined mdlib/init.c, === bcast_ir_mtop()
+
+  set_state_entries(state);
+
+  load_checkpoint(state);
+
+  cr->dd = init_domain_decomposition();
+  make_dd_communicators();
+
+  gmx_setup_nodecomm(fplog, cr);
+
+  if (cr->duty & DUTY_PP) {
+    if ( DOMAINDECOMP(cr) ) {
+      bcast_state_setup(cr, state);
+        * defined in mvdata.c; it broadcasts
+            state->natoms, ngtc, nnhpres,
+            nhchainlength, nrng, nrngi, flags
+
+    } else if ( PAR(cr) ) {
+      bcast_state(cr, state, TRUE);
+    }
+
+    init_forcerec(fr);
+  }
+
+  if (cr->duty & DUTY_PME)
+    gmx_pme_init();
+
+
+  if (cr->duty & DUTY_PP) {
+    init_constraints(fplog, mtop, inputrec);
+
+    integrator[ir->eI].func(fplog, cr);
+      * this calls do md
+  } else {
+    gmx_pmeonly();
+  }
+
+
+
+

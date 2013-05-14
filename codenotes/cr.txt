@@ -1,0 +1,151 @@
+GROMACS Communication
+===========================
+
+Overview
+---------
+ * mainly two structures: t_commrec and gmx_multisim_t
+ * the latter is included in the former
+ * the separation of PP and PME is done in make_dd_communicators(), in domdec.c
+
+
+
+Source Files
+------------
+include/types/commrec.h
+src/gmxlib/main.c
+src/gmxlib/network.c
+
+
+
+Structure t_commrec
+--------------------
+include/types/commrec.h
+
+
+typedef struct {
+  /* in replica exchange, all variables such as sim_nodeid, nnodes,
+     npmenodes, nodeid apply to a single replica or simulation,
+     the inter-replica communication is performed by `cr->ms'
+   */
+  int sim_nodeid; /* global node id, regardless of PME/PP grouping */
+  int nnodes;     /* total number of nodes,
+                     in replica exchange, however, it's the # of nodes
+                     within a single replica */
+  int npmenodes;  /* number of separate PME nodes */
+
+  int duty; /* PP or PME or PP/PME, nodes with different duties
+               are grouped to different groups */
+  int nodeid; /* the nodeid in `mygroup' */
+
+  /* if there is no separate PME nodes,
+       then mpi_comm_mygroup == mpi_comm_mysim,
+       which cover all nodes for the simulation (replica).
+     if there are separate PME nodes,
+       then mpi_comm_mygroup is the communicator of all PME-only nodes
+         on a PME-only node, cr->nodeid is the pme-id;
+       or the communicator of all PP-only nodes on a PP-only node,
+         cr->nodeid is the pp-id;
+  */
+  MPI_Comm mpi_comm_mysim; /* communicator among all nodes in a simulation */
+  MPI_Comm mpi_comm_mygroup; /* communicator among nodes in a group */
+
+  gmx_nodecomm_t nc;
+  gmx_domdec_t *dd; /* For domain decomposition */
+  gmx_partdec_p_t pd; /* For particle decomposition */
+  gmx_multisim_t *ms; /* see below for replica exchange */
+} t_commrec;
+
+
+
+
+Macros
+----------
+#define MASTER(cr)         (cr->nodeid == 0)
+#define SIMMASTER(cr)      (MASTER(cr) && ((cr)->duty & DUTY_PP))
+#define PAR(cr)            ((cr)->nnodes > 1)
+
+
+
+
+
+
+
+###############################################################################
+
+Overview of gmx_multisim_t (replica-exchange implementation)
+-------------------------------------------------------------
+
+* Strucutre for a multiple-replica simulation.
+
+* Each replica is an independent simulation,
+    so it is also subject to further domain decomposition
+    the grouping of PME/PP nodes, etc.
+
+* The implementation will modify `cr' such that
+    cr->mpi_comm_mysim only communicates among nodes in a replica
+    cr->ms->mpi_comm_masters, however, communicates among master
+      nodes among replicas, i.e.,
+    inTRA-replica:   cr->mpi_comm_mysim
+    inTER-replica:   cr->ms->mpi_comm_masters
+
+* The setup is already done in the main function (mdrun.c)
+  through init_multisystem(), before mdrunner() is called.
+
+* It requires the real MPI, not the thread version
+
+
+
+Structure gmx_multisim_t
+-------------------------
+include/types/commrec.h
+
+typedef struct {
+  int nsim; /* number of simulations (replicas) */
+  int sim;  /* simulation (replica) id */
+  MPI_Group mpi_group_masters; /* the group of all master
+                                  nodes of replicas */
+  MPI_Comm mpi_comm_masters;  /* communicators of all
+                                 master nodes of replicas */
+} gmx_multisim_t;
+
+
+
+init_multisystem(cr, nsim)
+---------------------------
+* defined in gmxlib/main.c
+* it initiates cr->ms,
+* set up communication between `nsim' replica copies
+* each replica has `nnodpersim' nodes
+
+  essential code
+ ................
+
+  die_if (cr->nnodes % nsim != 0);
+  nnodpersim = cr->nnodes/nsim;
+  sim = cr->nodeid / nnodepersim;
+
+  snew(ms, 1);
+  cr->ms = ms;
+  snew(rank, ms->nsim);
+  for (i = 0; i < ms->nsim; i++)
+    rank[i] = i * nnodpersim;
+
+  /* ms->mpi_comm_masters is a communicator between
+     replica master nodes */
+  MPI_Group_incl(..., nsim, rank, &ms->mpi_group_masters);
+  MPI_Comm_create(ms->mpi_group_masters, &ms->mpi_comm_masters);
+
+  /* change sim_nodeid, ... to pretend that only one replica exists
+     in this way, a replica exchange looks almost like a regular MD */
+  cr->nnodes = nnodpersim;
+  cr->sim_nodeid = cr->nodeid % nnodpersim;
+
+  /* cr->mpi_comm_mysim is responsible for communications
+     within a single-replica simulation */
+  MPI_Comm_split(MPI_COMM_WORLD, sim, cr->sim_nodeid,
+                 &cr->mpi_comm_mysim);
+  /* we haven't entered PP/PME business yet */
+  cr->mpi_comm_mygroup = cr->mpi_comm_mysim;
+  cr->node_id = cr->sim_nodeid;
+
+

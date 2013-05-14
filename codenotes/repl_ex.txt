@@ -1,0 +1,142 @@
+Replica exchange code
+======================
+
+Source files
+------------
+src/kernel/repl_ex.h
+src/kernel/repl_ex.c
+
+
+Structure
+-------------
+
+typedef struct gmx_repl_ex
+{
+  int repl;   /* replica id == ms->sim */
+  int nrepl;  /* numerber of replicas  == ms->nsim */
+  /* the above two variables correspond to those in gmx_multisim_t */
+
+  real q[ nrepl ];  /* temperature or lambda value */
+  int ind[ nrepl ];  /* from ordered-lambda-id to physical id */
+  int seed;
+  int *nexchange;
+} t_gmx_repl_ex, *gmx_repl_ex_t;
+
+
+Remarks
+~~~~~~~
+
+ *  Common variable name: `re'
+
+ *  Each replica is an independent simulation,
+    which is subject to further domain decomposition.
+
+ *  re->repl is the physical replica id
+    each physical replica is associated with a fixed temperature/lambda
+    but not a fixed molecular system
+    thus x/v/f are discontinuous after an exchange.
+
+ *  the temperature/lambda of the current `re->repl'
+    can always be read directedly from `re->q[ re->repl ];
+
+ *  phys-id = re->ind[ i ]
+    returns the temperature/lambda index == physical replica id
+    `i' is the ordering of q:
+        re->q[ re->ind[0] ],
+        re->q[ re->ind[1] ],
+        re->q[ re->ind[2] ],
+        ...
+    are arranged in ascending order
+
+
+
+
+
+
+
+Functions
+----------
+
+gmx_repl_ex_t *init_replica_exchange()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  fill the strcture
+
+
+
+
+gmx_bool replica_exchange(state, state_local)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  /* all replica masters compute the acceptance rates
+     `exchange' is with whom this replica is to be exchanged to */
+  if ( MASTER(cr) ) {
+    exchange = get_replica_exchange();
+    bExchanged = (exchange >= 0);
+  }
+
+  /* replica leader tells children if exchange has happened */
+  MPI_Bcast(&bExchange, ... cr->mpi_comm_mygroup);
+
+  /* move variables in `state_local' to `state'
+   * such that the master of the replica get the complete information */
+  dd_collect_state(state_local, state);
+
+  /* exchange coordinates, see below */
+  exchange_state(ms, exchange, state);
+
+  scale_velocities();
+
+  if ( particle_decomposition ) {
+    /* let non-master nodes know */
+    bcast_state(cr, stat);
+    /* or copy_state_nonatomdata(state, state_local); */
+  } else {
+    /* partition the system in md.c/do_md() */
+    dd_partition_system();
+  }
+
+  return bExchanged;
+
+
+
+
+
+
+
+Local functions:
+----------------
+
+  static int get_replica_exchange()
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  compute the acceptance probability
+  called by the replica-masters in replica_exchange();
+
+     1. call gmx_sum_sim() to gat Epot of all replicas
+        this assumes that the energy of each individual replica
+        has been calculated.
+
+     2. loop through replicas, try to swap `i-1' and `i'
+        stop at even i at even steps, odd `i' at odd steps
+        although it is relevant if
+          re->ind[i] == re->repl
+        or
+          re->ind[i-1] == re->repl
+
+
+  static void exchange_state(ms, b, state)
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    exchange data on this node to those on node `b'
+
+      box, box_rel, boxv, veta, vol0,
+      svir_prev, fvir_prev, pres_prev,
+      nhpres_xi, nhpres_vxi, therm_integral
+      x, v, sd_X,
+
+
+  static void exchange_reals(ms, b, v, n)
+  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    MPI_Isend(v);
+    MPI_Recv(buf);
+    MPI_Wait();
+    v = buf;
+
+

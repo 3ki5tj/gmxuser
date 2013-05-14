@@ -1,0 +1,58 @@
+ md.c/do_md() function
+=======================
+  * main MD loop on lines 693-1889 (v4.5):  ``while (!bLastStep ...) {''
+
+
+
+Arguments and variables
+-----------------------
+
+  t_state *state_global;
+  t_commrec *cr;
+  gmx_vsite_t *vsite;
+  gmx_constr_t constr;
+  gmx_top_t *top_global;
+  t_fcdata *fcd;
+  t_mdatoms *mdatoms;
+  t_inputrec *ir;
+  t_forcerec *fr;
+
+trivial ones
+  * t_filenm fnm[nfile];          file names,
+  * gmx_wallcycle_t wcycle;       mdlib/gmx_wallcycle.c
+  * output_env_t oenv;
+
+
+replica exchange variables
+--------------------------
+state_global
+enerd->term
+state
+
+
+
+`top_global'
+--------------
+
+used to create
+  `top_global' --> `top'
+
+
+`top_global' is used in
+
+  init_md(top_global);
+  init_enerdata(top_global);
+  top = dd_init_local_top(top_global);
+  dd_partition_system(top_global, top);
+  compute_globals(top_global)
+
+
+`top' is used in
+
+  dd_partition_system(top);
+  set_constraints(top);               before main loop
+  do_constrain_first(top);            before main loop
+  update_coords(&top->idef);
+  update_costrains(&top->idef);
+
+

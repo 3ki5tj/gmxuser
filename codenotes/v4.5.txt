@@ -22,7 +22,8 @@ Threads in mdrunner()
                  mainthread returns
     $ mdrunner_start_fn()
       % mdrunner()
-cr (t_commrec *) is now reliable
+
+cr is now reliable
 
 
 
@@ -71,4 +72,6 @@ gmxlib/bondfree.c, calc_bonds()
 do_force(), mdlib/sim_util.c
   force(), mdlib/force.c
     do_ewald(), mdlib/ewald.c
+
+
 

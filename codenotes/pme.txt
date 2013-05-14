@@ -1,0 +1,96 @@
+PME (Particle-Meshed Ewald sum)
+===============================
+
+Overview
+--------
+* works only with domain-decomposition, not particle decomposition
+  line 461, kernel/runner.c
+
+
+Source Files
+------------
+mdlib/pme.c
+mdlib/pme_pp.c      communication between pp-only and pme-only nodes
+include/types/forcerec.h
+
+
+Structure gmx_pme_t;
+--------------------
+the structure is defined in mdlib/pme.c
+the pointer pmx_pme_t is defined in types/forcerec.h
+
+typedef struct gmx_pme {
+  int nodeid; /* correspond to mpi_comm */
+  MPI_Comm mpi_comm;
+
+  gmx_bool bPPnode;
+} t_gmx_pme, *pmx_pme_t;
+
+
+
+Functions
+---------
+
+int gmx_pme_init(pmedata, cr)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+ * pme.c/line 2028
+ * called in runner/mdrunner()
+
+ pme->mpi_comm = cr->mpi_comm_mygroup;
+ MPI_Comm_size(pme->mpi_comm, &pme->nnodes);
+
+
+int gmx_pmeonly(pme, cr)
+~~~~~~~~~~~~~~~~~~~~~~~~
+  pme_pp = gmx_pme_pp_init(cr);
+  do { /* quasi loop over time */
+    natoms = gmx_pme_recv_q_x(pme_pp, ...);
+    gmx_pme_do(pme, 0, natoms);
+    gmx_pme_send_force_vir_ener(pme_pp);
+  } while (TRUE);
+
+
+int gmx_pme_do(pme)
+~~~~~~~~~~~~~~~~~~~
+ ...
+
+
+
+
+###############################################################################
+
+
+typedef struct gmx_pme_pp {
+  MPI_Request *req[2*nnode];
+} t_gmx_pme_pp;
+
+
+
+
+static void gmx_pme_send_q_x(cr)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* called by do_force() in mdlib/sim_util.c
+    via the alias gmx_pme_send_x()
+
+* key code:
+
+  if (flags & PP_PME_COORD) {
+    /* unblocked send coordinates from to `dd->pme_nodeid'
+       using the global communicator `cr->mpi_comm_mysim' */
+    MPI_Isend(x[0], n * sizeof(rvec), MPI_BYTE);
+              dd->pme_nodeid, 3,
+              cr->mpi_comm_mysim, &dd->req_pme[dd->nreq_pme++]);
+  }
+
+
+static void gmx_pme_recv_q_x()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+* called by gmx_pmeonly() in mdlib/pme.c
+  which is called by mdrunner() for PME-only node in kernel/runner.c
+
+  if (cnb.flags & PP_PME_COORD) {
+    MPI_Irecv(pme_pp->x[nat], pme_pp->nat[sender] * sizeof(rvec), MPI_BYTE,
+      pme_pp->node[sender], 3,
+      pme_pp->mpi_comm_mysim, &pme_pp->req[messages++]
+    );
+  }
