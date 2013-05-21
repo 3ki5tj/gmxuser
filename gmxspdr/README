@@ -1,25 +1,57 @@
 GROMACS engine fetcher gmxspdr.py
 =================================
 
-Run it under GROMACS 4/4.5 src/kernel
+Overview
+--------
+The program grabs several core GROMACS files,
+  and writes a self-contained C file, which can be
+  compiled to an independent engine.
+Optionally, it reads an input template file `foo.h',
+  and then outputs `mdfoo.c', in which the functional
+  tags, such as $MDRUN_C are replaced by the relevant
+  functions in the corresponding GROMACS source code
+  (in this case `mdrun.c').
 
-Code structure
-===============
-* CC:       generic code changer (cc.py)
-            e.g., remove a line, find a code block, etc.
-* CCGMX:    common changes for GROMACS, based on CC (ccgmx.py)
+
+Quick usage
+------------
+Put a symbolic link fo the script under the directory
+  GROMACS 4/4.5 src/kernel
+Then run
+  python ./gmxspdr.py
+
 
 
 File structure
-===============
+--------------
 gmxspdr.py
-  ccmdxv4.5.py    grab code from modules
-  ccobj.py:       create obj code
-    ccgmx.py      code changes to gromacs
-      cc.py       generic code changes
+ |
+ +--ccmdxv45.py   specific modifications to various
+ |   |            GROMACS source files
+ |   |
+ |   +--ccgmx.py  common code changes to GROMACS
+ |       |        such as getting the version, and removing
+ |       |        useless code like thanx()
+ |       |
+ |       +--cc.py generic code changes, such as adding,
+ |                removing and substituting a line/block
+ |
+ +--ccaux.py:     write auxiliary code
+
+cspacer.py        the code beautifier called in cc.py
+                  it can be missing however
 
 
-* the v4.0 versions are indep. of the v4.5 versions
-* atspider.py is attached here for compatibility (it depends on cc.py and ccgmx.py)
+* the v4.0 versions are independent of the v4.5 versions
+* atspider.py is attached here for compatibility
+    (it, however, now depends on cc.py and ccgmx.py)
+
+
+
+Classes
+---------------
+* CC:       generic code changer (cc.py)
+            e.g., remove a line, find a code block, etc.
+* CCGMX:    common changes for GROMACS, based on CC (ccgmx.py)
 
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 '''
-  build a self-contained GROMACS (v4.5) engine 
+  specific changes and tweaks to various GROMACS files
+  for GROMACS 4.5
   * get_bondfree_c()
   * get_force_c()
   * get_simutil_c()
@@ -16,7 +17,7 @@ from ccgmx import CCGMX
 
 def get_bondfree_c(obj, fn = None, hdrs = {}):
   ''' read bondfree.c and remove junks '''
-  
+
   if not fn: fn = "../gmxlib/bondfree.c"
 
   c = CCGMX(fn, obj, hdrs = hdrs)
@@ -53,7 +54,7 @@ def get_bondfree_c(obj, fn = None, hdrs = {}):
   c.rmfunc("real unimplemented(int nbonds,")
   c.rmfunc("real rbdihs(int nbonds,")
   c.rmfunc("int cmap_setup_grid_index(int ip, int grid_spacing,")
-  
+
   # we need a prototype of cmap_dihs
   if c.findblock("real cmap_dihs(int nbonds", ending = ")", wsp = False) < 0:
     print "cannot find %s in %s" % (cmap_dihs, c.fname)
@@ -120,7 +121,7 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
 
   c = CCGMX(fn, obj, hdrs = hdrs)
   c.mdcom()
-  
+
   # I. remove unecessary functions
   # cf. v4.5, sim_util.c, lines 105-109
   c.rmfunc("gmx_ctime_r(const time_t *clock,char *buf, int n);", starter = "/*")
@@ -130,7 +131,7 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
   c.rmline("#define difftime(end,start)")
   # cf. v4.5, sim_util.c, lines 134-188
   c.rmfunc("void print_time(FILE *out,gmx_runtime_t *runtime,gmx_large_int_t step,")
-  # cf. v4.5, sim_util.c, lines 189-219 
+  # cf. v4.5, sim_util.c, lines 189-219
   c.rmfunc("static double set_proctime(gmx_runtime_t *runtime)",
       starter = "#ifdef NO_CLOCK")
   # cf. v4.5, sim_util.c, lines 220-230
@@ -196,7 +197,7 @@ def md_c_changedomd(c):
   if c.findblk("/\*.*END PREPARING EDR OUTPUT", ending = None) < 0:
     raise Exception
   i = c.begin + offset
-  bxtc = "mdof_flags & MDOF_XTC"    
+  bxtc = "mdof_flags & MDOF_XTC"
   callmove = c.temprepl(r'''
         /* update $OBJ */
         if (0 != $PFX_move($OBJ, enerd,
@@ -246,7 +247,7 @@ def runner_c_changemdrunner(c):
   # I. search the declaration of the function mdrunner()
   c.mutfunc2("mdrunner", iscall = False, newend = ", int %s)" % c.varmode,
       pat = "int\s+mdrunner\(")
-  
+
   # II. add $OBJ declaration
   for j in range(c.end, len(c.s)): # look for a blank line
     if c.s[j].strip() == "":
@@ -255,7 +256,7 @@ def runner_c_changemdrunner(c):
     print "cannot find the variable list of the function %s" % c.fmap["mdrunner"]
     raise Exception
   c.addln(j, "    %s_t *%s;\n" % (c.obj, c.obj) )
-  
+
   # III. save a new prototype of the function
   proto = c.s[c.begin : c.end + 1]
   #raw_input("The prototype\n" + ''.join(proto))
@@ -265,7 +266,7 @@ def runner_c_changemdrunner(c):
   proto = ["\n", "/* declare runner() before mdrunner_start_fn() uses it */\n",
       "static\n"] + proto
 
-  # IV. add $PFX_finish() at the very end of the function 
+  # IV. add $PFX_finish() at the very end of the function
   k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
   k2 -= 1 # skip the statement "return rc;" cf. v4.5, runner.c, line 892
   c.addln(k2, c.temprepl('''    if ($OBJ != NULL)

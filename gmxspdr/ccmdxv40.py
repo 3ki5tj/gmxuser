@@ -44,7 +44,7 @@ def get_bondfree_c(obj, fn = None, hdrs = {}):
   c.rmfunc("real angresz(int nbonds,")
   c.rmfunc("real unimplemented(int nbonds,")
   c.rmfunc("real rbdihs(int nbonds,")
- 
+
   c.rmfunc("real g96harmonic(real kA,real kB,real xA,real xB,",
       starter = "/*")
   c.rmfunc("real g96bonds(int nbonds,")
@@ -68,7 +68,7 @@ def get_force_c(obj, fn = None, hdrs = {}):
 
   c = CCGMX(fn, obj, hdrs)
   c.mdcom()
-  
+
   c.rmfunc("t_forcerec *mk_forcerec(void)")
   c.rmdf("DEBUG")
   c.rmfunc("static real *mk_nbfp(const gmx_ffparams_t *idef,bool bBHAM)")
@@ -128,7 +128,7 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
   c.rmfunc("void do_pbc_mtop(FILE")
   c.rmfunc("void finish_run(FILE")
   c.rmfunc("void init_md(FILE")
-  
+
   c.mutfunc("sum_forces")
   c.mutfunc("reset_energies")
   c.mutfunc("calc_f_el")
@@ -136,7 +136,7 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
   c.mutfunc("sum_v")
   c.mutfunc("sum_epot")
   c.mutfunc("print_large_forces")
-  
+
   # change function names
   c.mutfunc2("do_force_lowlevel", iscall = True)
   c.mutfunc2("do_force", iscall = False)
@@ -173,8 +173,8 @@ def mdrun_c_addopt(c):
 
 
 def md_c_changemdrunner(c):
-  ''' modify the function mdrunner() 
-      this function is located in md.c 
+  ''' modify the function mdrunner()
+      this function is located in md.c
   '''
 
   # I. search the declaration of the function mdrunner()
@@ -190,8 +190,8 @@ def md_c_changemdrunner(c):
     print "cannot find the variable list of the function %s" % c.fmap["mdrunner"]
     raise Exception
   c.addln(j, "    %s_t *%s;\n" % (c.obj, c.obj) )
- 
-  # III. add $PFX_finish() at the very end of the function 
+
+  # III. add $PFX_finish() at the very end of the function
   k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
   c.addln(k2, c.temprepl('''  if ($OBJ != NULL)
     $PFX_finish($OBJ);''', True) )
@@ -299,7 +299,7 @@ def get_mdrun_c(obj, fn = None, hdrs = {}):
 
   # add a parameter `mode' to mdrunner() call
   c.mutfunc2("mdrunner", iscall = True, newend = ", %s);" % c.varmode)
-  c.mutfunc("mdrunner")  
+  c.mutfunc("mdrunner")
 
   # get the static qualifier
   if c.findblk("static const char \*desc", ending = None) >= 0: pfx = "static "

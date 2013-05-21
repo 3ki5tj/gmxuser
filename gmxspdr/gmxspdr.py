@@ -1,21 +1,24 @@
 #!/usr/bin/env python
 
 '''
-build a self-contained GROMACS (v4.5) engine based on template replacement
- make mdx.c from xx.h
+build a self-contained C file as a GROMACS engine
+basically it grabs several key files from the GROMACS source tree and
+writes an output `mdfoo.c' based on an optional input template `foo.h'
+to see more, run the script with `-h', the function usage()
 '''
 
 import re, sys, os, glob, getopt
 from cc import CC
 from ccgmx import CCGMX
-from ccobj import CCOBJ
+from ccaux import CCAUX
 import ccmdxv40
 import ccmdxv45
 
+# default project name
 prjname = "foo"
 version = 1
 
-# default input file
+# default input template file
 finp = '''
 /* $OBJ_DECL */
 /* $OBJ_FUNCS */
@@ -33,10 +36,12 @@ def usage():
   print "%s [OPTIONS] project" % sys.argv[0]
 
   print '''
-  The program grabs several core GROMACS files, 
-  and manages to construct a self-contained MD engine.
-  it reads xxx.h, where `xxx' is the project name,
-  then it outputs mdxxx.c, specific functions are replaced
+  The program grabs several core GROMACS files, and writes
+  a self-contained C file, which can be compiled to an independent engine
+  Optionally, it reads an input template file `foo.h',
+  and then outputs `mdfoo.c', in which the functional tags, such as
+  $MDRUN_C are replaced by the relevant functions in the corresponding
+  GROMACS source code (`mdrun.c').
   '''
 
   print '''
@@ -51,13 +56,13 @@ def doargs():
   global prjname, version, finp
 
   try:
-    opts, args = getopt.gnu_getopt(sys.argv[1:], "hv:f:", 
+    opts, args = getopt.gnu_getopt(sys.argv[1:], "hv:f:",
         ["help", "version=", "input=="])
   except getopt.GetoptError, err:
     # print help information and exit
     print str(err) # will print something like "option -a not recognized"
     usage()
-  
+
   fninp = None # unset the default file name
   for o, a in opts:
     if o in ("-v", "--version"):
@@ -66,10 +71,10 @@ def doargs():
       fninp = a
     elif o in ("-h", "--help"):
       usage()
-  
+
   if len(args) > 0:
     prjname = args[0]
-  
+
   # process the project name
   if prjname.startswith("md"):  # remove the prefix `md'
     prjname = prjname[2:]
@@ -148,7 +153,7 @@ def main():
   mdrun_c = cm.get_mdrun_c(obj, None, hdrs)
 
 
-  # template replacement 
+  # template replacement
   dic = {
     "/* $OBJ_DECL    */" : co.getdecl(),
     "/* $OBJ_FUNCS   */" : co.getfuncs(),

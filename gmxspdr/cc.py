@@ -453,7 +453,7 @@ class CC:
       # strip away `/*' and `*/'
       if spat.startswith("/*"): spat = spat[2:].lstrip()
       if spat.endswith("*/"): spat = spat[:-2].rstrip()
-      
+
       # `srep' is the actual code, as a string
       srep = ''.join(d[key]) + '\n'
 

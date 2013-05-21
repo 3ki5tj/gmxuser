@@ -1,12 +1,15 @@
 #!/usr/bin/env python
 
 '''
-GROMACS related code changer, a class CCGMX
-also has a function getgmxver
+common GROMACS related modifications,
+such as retrieving version and removing useless code
+arranged in a class CCGMX, which extends CC
 '''
 
 import re, getopt, os, sys
 from cc import CC
+
+
 
 class CCGMX(CC):
   ''' changes for GROMACS, it extends class CC (cc.py)
@@ -36,7 +39,7 @@ class CCGMX(CC):
     # call the base class constructor
     CC.__init__(c, fn, hdrs)
     # compute GROMACS version
-    c.getgmxver()
+    c.getversion()
     if obj != None:
       c.obj = obj
       c.pfx = c.obj + "gmx"
@@ -57,6 +60,7 @@ class CCGMX(CC):
     if parse:
       s = [ln + '\n' for ln in s.splitlines()] + ['\n']
     return s
+
 
   def mutfunc(c, func, doall = True):
     ''' replace the function name `func' by fmap[func] '''
@@ -276,70 +280,73 @@ class CCGMX(CC):
         c.s[ii] + extra, "#endif\n", ] + c.s[ii+1 : ]
 
 
-  @staticmethod
-  def getgmxver0():
-    ''' get GROMACS version from CMakeLists.txt or configure.ac
-        works for up to v4.5 '''
-
-    cfgac = "../../configure.ac"
-    cmake = "../../CMakeLists.txt"
-
-    if os.path.exists(cmake): # version 4.5 or later
-      for s in open(cmake):
-        # we look for something like that
-        # set(PROJECT_VERSION "4.5.6-dev")
-        ln = s.strip()
-        if ln.startswith('set(PROJECT_VERSION'):
-          # we take the first 5 letters, i.e., 4.5.6
-          ln = ln.split()[1].strip().replace('"', '').replace(')', '')[:5]
-          # convert to int 40506
-          version = int( ln.replace('.', '0') )
-          break
-      else:
-        print "cannot determine version from %s" % cmake
-        raise Exception
-      isgmx4 = 0
-      sopenmm = "GMX_OPENMM"
-
-    elif os.path.exists(cfgac): # v4.0 or earlier
-      for s in open(cfgac):
-        if s.startswith("AC_INIT"):
-          # a typical string is like
-          #   AC_INIT(gromacs, 4.5.6-dev, [gmx-users@gromacs.org])
-          # so we take the second number in the parentheses ()
-          sver = s.split(",")[1].strip()
-          if sver.startswith("4.0"):
-            isgmx4 = 1
-          else:
-            print "bad gromacs version %s" % sver
-            raise Exception
-          version = int( sver[:5].replace(".", "0") )
-          break
-      else:
-        print "cannot determine version number from %s" % cfgac
-        raise Exception
-      # v4 uses USE_OPENMM
-      sopenmm = "USE_OPENMM"
-
-    else:  # there is neither CMakeLists.txt nor configure.ac
-      raise Exception
-
-    return version, isgmx4, sopenmm
-
-
-  def getgmxver(c):
-    ''' get GROMACS version from configure.ac
-        works for up to v4.5 '''
+  def getversion(c):
+    ''' same as the static function getgmxver()
+        but it avoids repeated calling that '''
 
     # this function has been called before
     # no need to repeat it for every instance
     if CCGMX.version > 0: return
 
-    (CCGMX.version, CCGMX.isgmx4, CCGMX.sopenmm) = CCGMX.getgmxver0()
+    # we assign the class-level, instead of instance-level,
+    # variables, such that, when the next time an instance
+    # is create, the version needs not to be computed again
+    (CCGMX.version, CCGMX.isgmx4, CCGMX.sopenmm) = getgmxver()
 
     # verify the instance has the values
     print "gromacs version: %d; v4.0? %s; openmm string: %s" % (
         c.version, bool(c.isgmx4), c.sopenmm)
 
+
+
+# @staticmethod
+def getgmxver():
+  ''' get GROMACS version from CMakeLists.txt or configure.ac
+      works for GROMACS v4.0 and v4.5 '''
+
+  cfgac = "../../configure.ac"
+  cmake = "../../CMakeLists.txt"
+
+  if os.path.exists(cmake): # version 4.5 or later
+    for s in open(cmake):
+      # we look for something like that
+      # set(PROJECT_VERSION "4.5.6-dev")
+      ln = s.strip()
+      if ln.startswith('set(PROJECT_VERSION'):
+        # we take the first 5 letters, i.e., 4.5.6
+        ln = ln.split()[1].strip().replace('"', '').replace(')', '')[:5]
+        # convert to int 40506
+        version = int( ln.replace('.', '0') )
+        break
+    else:
+      print "cannot determine version from %s" % cmake
+      raise Exception
+    isgmx4 = 0
+    sopenmm = "GMX_OPENMM"
+
+  elif os.path.exists(cfgac): # v4.0 or earlier
+    for s in open(cfgac):
+      if s.startswith("AC_INIT"):
+        # a typical string is like
+        #   AC_INIT(gromacs, 4.5.6-dev, [gmx-users@gromacs.org])
+        # so we take the second number in the parentheses ()
+        sver = s.split(",")[1].strip()
+        if sver.startswith("4.0"):
+          isgmx4 = 1
+        else:
+          print "bad gromacs version %s" % sver
+          raise Exception
+        version = int( sver[:5].replace(".", "0") )
+        break
+    else:
+      print "cannot determine version number from %s" % cfgac
+      raise Exception
+    # v4 uses USE_OPENMM
+    sopenmm = "USE_OPENMM"
+
+  else:  # there is neither CMakeLists.txt nor configure.ac
+    raise Exception
+
+  return version, isgmx4, sopenmm
 
 

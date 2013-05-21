@@ -1,12 +1,13 @@
+''' write auxiliary code to handle input '''
 
 import re, getopt, os, sys
 from ccgmx import CCGMX
 
-class CCOBJ(CCGMX):
+class CCAUX(CCGMX):
 
   def __init__(c, obj):
     ''' override the constructor '''
-    # since CCOBJ is a CCGMX, gromacs version is computed
+    # since CCAUX is a CCGMX, gromacs version is computed
     CCGMX.__init__(c, None, obj, {})
 
 
@@ -35,7 +36,7 @@ $OBJ_t *$PFX_init(const char *fncfg, unsigned fromcpt,
   if (SIMMASTER(cr)) {
     /* call gromacs independent routine to initalize */
     if (($OBJ = calloc(1, sizeof(*$OBJ))) == NULL) {
-      err = - 1;
+      err = -1;
       goto PAR1;
     }
     $OBJ->mode = mode;
@@ -51,8 +52,8 @@ PAR1: /* check error in the master branch */
   if (err) return NULL;
 
 #ifdef GMX_MPI
-  /* tell everyone settings on the master 
-   * valid only for PP only node, maybe we need to 
+  /* tell everyone settings on the master
+   * valid only for PP only node, maybe we need to
    * consider using mpi_comm_mysim for more advanced versions
    * we pass MPI_COMM_NULL to avoid the case of one-node-mpi */
 #endif
