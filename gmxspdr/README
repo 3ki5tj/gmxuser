@@ -1,4 +1,5 @@
-spider.py
+GROMACS engine fetcher gmxspdr.py
+=================================
 
 Run it under GROMACS 4/4.5 src/kernel
 
@@ -11,7 +12,7 @@ Code structure
 
 File structure
 ===============
-spider0.py
+gmxspdr.py
   ccmdxv4.5.py    grab code from modules
   ccobj.py:       create obj code
     ccgmx.py      code changes to gromacs
@@ -19,6 +20,6 @@ spider0.py
 
 
 * the v4.0 versions are indep. of the v4.5 versions
-* atspider.py is left for compatibility (it depends on cc.py and ccgmx.py)
+* atspider.py is attached here for compatibility (it depends on cc.py and ccgmx.py)
 
 

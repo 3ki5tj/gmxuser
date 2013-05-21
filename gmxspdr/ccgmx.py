@@ -278,7 +278,7 @@ class CCGMX(CC):
 
   @staticmethod
   def getgmxver0():
-    ''' get GROMACS version from configure.ac
+    ''' get GROMACS version from CMakeLists.txt or configure.ac
         works for up to v4.5 '''
 
     cfgac = "../../configure.ac"
