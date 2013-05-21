@@ -1,5 +1,8 @@
 Overview
 --------
  *  abandon og.py to make it simpler
- *  gmxae.h --> src/kernel/ae.h
- *  gmxspider.py is still used to grab GROMACS code
+ *  gmxspdr.py is still used to grab GROMACS code
+
+Build
+
+  gmxspdr.py -i gmxalge.h

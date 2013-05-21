@@ -1,5 +1,6 @@
-GROMACS engine fetcher gmxspdr.py
+GROMACS code fetcher gmxspdr.py
 =================================
+
 
 Overview
 --------
@@ -12,39 +13,58 @@ Optionally, it reads an input template file `foo.h',
   functions in the corresponding GROMACS source code
   (in this case `mdrun.c').
 
+The advantage of writing a separate GROMACS engine
+  is that it won't pollute the official version,
+  or make the code-base bloat.
+The aim of the project is to write a skeleton GROMACS code
+  automatically.  The code should be work for small changes
+  made in the official versions of the GROMACS.
+  (however, both GROMACS v4.5 and v4.0 are quite stable now.)
+
+
+
 
 Quick usage
 ------------
-Put a symbolic link fo the script under the directory
+Put a symbolic link of the script under the directory
+
   GROMACS 4/4.5 src/kernel
+
 Then run
+
   python ./gmxspdr.py
 
+Or, if there is a template, say `foo.h'
+
+  python ./gmxspdr.py foo.h
+
+The `.h' on the command line can be omitted.
 
 
-File structure
+
+Files
 --------------
 gmxspdr.py
  |
  +--ccmdxv45.py   specific modifications to various
- |   |            GROMACS source files
- |   |
- |   +--ccgmx.py  common code changes to GROMACS
- |       |        such as getting the version, and removing
- |       |        useless code like thanx()
- |       |
- |       +--cc.py generic code changes, such as adding,
- |                removing and substituting a line/block
- |
- +--ccaux.py:     write auxiliary code
+     |            GROMACS source files
+     |
+     +--ccgmx.py  common code changes to GROMACS
+         |        such as getting the version, and removing
+         |        useless code like thanx()
+         |
+         +--cc.py generic code changes, such as adding,
+                  removing and substituting a line/block
 
-cspacer.py        the code beautifier called in cc.py
+ccutil.py         standalone helper functions
+
+cspacer.py        the code beautifier called in ccutil.py
                   it can be missing however
 
 
 * the v4.0 versions are independent of the v4.5 versions
-* atspider.py is attached here for compatibility
-    (it, however, now depends on cc.py and ccgmx.py)
+* the old script atspider.py is attached here for compatibility
+    (it, however, depends on cc.py and ccgmx.py)
 
 
 

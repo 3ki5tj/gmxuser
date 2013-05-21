@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 '''
-  specific changes and tweaks to various GROMACS files
-  for GROMACS 4.5
+  specific changes and tweaks to various GROMACS v4.5 files
+  no class is defined in this file
   * get_bondfree_c()
   * get_force_c()
   * get_simutil_c()
@@ -12,15 +12,16 @@
 '''
 
 import re, getopt, os, sys
-from cc import CC
 from ccgmx import CCGMX
+from ccutil import tmphastag
 
-def get_bondfree_c(obj, fn = None, hdrs = {}):
+def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read bondfree.c and remove junks '''
 
+  if not tmphastag(txtinp, "bondfree.c"): return ""
   if not fn: fn = "../gmxlib/bondfree.c"
 
-  c = CCGMX(fn, obj, hdrs = hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unnecessary functions
@@ -79,14 +80,16 @@ def get_bondfree_c(obj, fn = None, hdrs = {}):
 
   # change function name
   c.mutfunc2("calc_bonds", iscall = False)
-  return c
+  return c.s
 
 
-def get_force_c(obj, fn = None, hdrs = {}):
+def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' real force.c and remove junks '''
+
+  if not tmphastag(txtinp, "force.c"): return ""
   if not fn: fn = "../mdlib/force.c"
 
-  c = CCGMX(fn, obj, hdrs = hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unnecessary functions
@@ -111,15 +114,22 @@ def get_force_c(obj, fn = None, hdrs = {}):
 
   # III. change function name
   c.mutfunc2("do_force_lowlevel", iscall = False)
-  c.mutfunc2("calc_bonds", iscall = True)
-  return c
+
+  # if we have to change bondfree.c, then
+  # change the call calc_bonds()
+  if tmphastag(txtinp, "bondfree.c"):
+    c.mutfunc2("calc_bonds", iscall = True)
+  return c.s
 
 
-def get_simutil_c(obj, fn = None, hdrs = {}):
+
+def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read sim_util.c, and remove junks '''
+
+  if not tmphastag(txtinp, "sim_util.c"): return ""
   if not fn: fn = "../mdlib/sim_util.c"
 
-  c = CCGMX(fn, obj, hdrs = hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unecessary functions
@@ -169,8 +179,12 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
   c.mutfunc("print_large_forces")
 
   # change function names
-  c.mutfunc2("do_force_lowlevel", iscall = True)
   c.mutfunc2("do_force", iscall = False)
+
+  # if we have to change force.c, then
+  # change the call do_force_lowlevel()
+  if tmphastag(txtinp, "force.c"):
+    c.mutfunc2("do_force_lowlevel", iscall = True)
 
   # III. remove uncessary blocks
   c.rmblk("do_flood\(fplog", starter = "if (ed)", ending = "}")
@@ -180,44 +194,41 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
   c.substt("int i,j;", "int i;");
   c.substt(",bBS;", ";", "bCalcCGCM,bBS");
   c.addifdef("matrix\s+boxs;", "GMX_MPI", extra = "    gmx_bool bBS;\n")
-  return c
+  return c.s
 
 
-def md_c_changedomd(c):
-  '''
-  change the function do_md()
-  * add a function $PFX_move()
-  * change do_force() to $PFX_doforce()
-  '''
 
+def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+  ''' read md.c, and remove junks '''
+
+  if not tmphastag(txtinp, "md.c"): return ""
+  if not fn: fn = "md.c"
+
+  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c.mdcom()
+
+  # change the name of do_md()
   c.mutfunc2("do_md", iscall = False)
 
-  # add a call $PFX_move()
+  # add a call %PFX%_move()
   offset = 1
   if c.findblk("/\*.*END PREPARING EDR OUTPUT", ending = None) < 0:
     raise Exception
   i = c.begin + offset
   bxtc = "mdof_flags & MDOF_XTC"
   callmove = c.temprepl(r'''
-        /* update $OBJ */
-        if (0 != $PFX_move($OBJ, enerd,
+        /* update %OBJ% */
+        if (0 != %PFX%_move(%OBJ%, enerd,
              step, bFirstStep, bLastStep, bGStat,
              mdof_flags & MDOF_XTC, bNS, cr) ) {
           exit(1);
         }''', parse = True)
   c.addln(i, callmove)
 
-  # change the call do_force to $PFX_doforce
-  c.mutfunc2("do_force", iscall = True)
-
-
-def get_md_c(obj, fn = None, hdrs = {}):
-  ''' read md.c, and remove junks '''
-  if not fn: fn = "md.c"
-
-  c = CCGMX(fn, obj, hdrs)
-  c.mdcom()
-  md_c_changedomd(c)
+  # if we also need to modify sim_util.c, then
+  # change the call do_force()
+  if tmphastag(txtinp, "sim_util.c"):
+    c.mutfunc2("do_force", iscall = True)
 
   # remove useless blocks
   # v4.5, md.c, lines 526-534, 795-804, 934-946
@@ -238,88 +249,17 @@ def get_md_c(obj, fn = None, hdrs = {}):
   c.substt("*xcopy=NULL,*vcopy=NULL,", "")
   c.rmline("gmx_bool bAppend;")
   c.rmline("bAppend = (Flags & MD_APPENDFILES);")
-  return c
+  return c.s
 
 
-def runner_c_changemdrunner(c):
-  ''' modify the function mdrunner() '''
 
-  # I. search the declaration of the function mdrunner()
-  c.mutfunc2("mdrunner", iscall = False, newend = ", int %s)" % c.varmode,
-      pat = "int\s+mdrunner\(")
-
-  # II. add $OBJ declaration
-  for j in range(c.end, len(c.s)): # look for a blank line
-    if c.s[j].strip() == "":
-      break
-  else:
-    print "cannot find the variable list of the function %s" % c.fmap["mdrunner"]
-    raise Exception
-  c.addln(j, "    %s_t *%s;\n" % (c.obj, c.obj) )
-
-  # III. save a new prototype of the function
-  proto = c.s[c.begin : c.end + 1]
-  #raw_input("The prototype\n" + ''.join(proto))
-  last = len(proto) - 1
-  proto[last] = proto[last].rstrip() + ";\n"
-  # add a comment to the prototype
-  proto = ["\n", "/* declare runner() before mdrunner_start_fn() uses it */\n",
-      "static\n"] + proto
-
-  # IV. add $PFX_finish() at the very end of the function
-  k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
-  k2 -= 1 # skip the statement "return rc;" cf. v4.5, runner.c, line 892
-  c.addln(k2, c.temprepl('''    if ($OBJ != NULL)
-      $PFX_finish($OBJ);''', True) )
-
-  # V. add a call to the $PFX_init() function
-  # after the signals are installed
-  for i in range(k1, k2):
-    # cf. v4.5, runner.c, line 797
-    if c.s[i].strip().startswith("signal_handler_install();"):
-      # search for the signal finishing
-      l, i = c.getblockend(i, ending = "}", sindent = "    ")
-      break
-  else:
-    print "cannot find insersion point for %s_init" % c.pfx
-    raise Exception
-
-  callinit = c.temprepl(r'''
-    /* initialize project $OBJ, cr->duty PP/PME has been assigned */
-    $OBJ = $PFX_init($PFX_opt2fn("-cfg", nfile, fnm),
-        Flags & MD_STARTFROMCPT, mtop, inputrec, cr, $MODE);
-    if ((cr->duty & DUTY_PP) && $OBJ == NULL) {
-      fprintf(stderr, "Failed to initialize $OBJ\n");
-      exit(1);
-    }''', parse = True)
-  c.addln(i, callinit)
-
-  # VI. change the call do_md()
-  c.substt("integrator[inputrec->eI].func", "do_md", doall = True)
-  c.mutfunc2("do_md", iscall = True)
-
-  c.mutfunc2("mdrunner", iscall = True, newend = ", mc.%s);" % c.varmode)
-  c.mutfunc("mdrunner")
-
-  # VII. insert the prototype of mdrunner() after a bunch of #include
-  # at the beginning of the file
-  i = len(c.s) - 1
-  while i >= 0:
-    if c.s[i].startswith("#include"):
-      break
-    i -= 1
-  c.addln(i+1, proto)
-
-
-def get_runner_c(obj, fn = None, hdrs = {}):
+def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read runner.c, and remove junks '''
-  if CCGMX.isgmx4: # v4.0 has no runner.c
-    c = CCGMX(None, obj, hdrs)
-    return c
 
+  if not tmphastag(txtinp, "runner.c"): return ""
   if not fn: fn = "runner.c"
 
-  c = CCGMX(fn, obj, hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
 
   # add `varmode' to the declaration of mdrunner_arglist, cf. v4.5, runner.c, line 113
@@ -335,7 +275,81 @@ def get_runner_c(obj, fn = None, hdrs = {}):
   if c.findblk('mda\-\>Flags=Flags;', ending = None) >= 0:
     c.addln(c.end+1, '    mda->%s = %s;\n' % (c.varmode, c.varmode))
 
-  runner_c_changemdrunner(c)
+  # I. search the declaration of the function mdrunner()
+  c.mutfunc2("mdrunner", iscall = False, newend = ", int %s)" % c.varmode,
+      pat = "int\s+mdrunner\(")
+
+  # II. add %OBJ% declaration
+  for j in range(c.end, len(c.s)): # look for a blank line
+    if c.s[j].strip() == "":
+      break
+  else:
+    print "cannot find the variable list of the function %s" % c.fmap["mdrunner"]
+    raise Exception
+  c.addln(j, "    %s_t *%s;\n" % (c.pfx, c.obj) )
+
+  # III. save a new prototype of the function
+  proto = c.s[c.begin : c.end + 1]
+  #raw_input("The prototype\n" + ''.join(proto))
+  last = len(proto) - 1
+  proto[last] = proto[last].rstrip() + ";\n"
+  # add a comment to the prototype
+  proto = ["\n", "/* declare runner() before mdrunner_start_fn() uses it */\n",
+      "static\n"] + proto
+
+  # IV. add %PFX%_done() at the very end of the function
+  k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
+  k2 -= 1 # skip the statement "return rc;" cf. v4.5, runner.c, line 892
+  c.addln(k2, c.temprepl('''    if (%OBJ% != NULL)
+      %PFX%_done(%OBJ%);
+''', True) )
+
+  # V. add a call to the %PFX%_init() function
+  # after the signals are installed
+  for i in range(k1, k2):
+    # cf. v4.5, runner.c, line 797
+    if c.s[i].strip().startswith("signal_handler_install();"):
+      # search for the signal finishing
+      l, i = c.getblockend(i, ending = "}", sindent = "    ")
+      break
+  else:
+    print "cannot find insersion point for %s_init" % c.pfx
+    raise Exception
+
+  callinit = c.temprepl(r'''
+    /* initialize project %OBJ%, cr->duty PP/PME has been assigned */
+    %OBJ% = %PFX%_init(%PFX%_opt2fn("-cfg", nfile, fnm),
+        Flags & MD_STARTFROMCPT, mtop, inputrec, cr, %MODE%);
+    if ((cr->duty & DUTY_PP) && %OBJ% == NULL) {
+      fprintf(stderr, "Failed to initialize %OBJ%\n");
+      exit(1);
+    }''', parse = True)
+  c.addln(i, callinit)
+
+  # VI. if md.c has to be changed, then
+  # change the call do_md()
+  # NOTE: must compile with md.c, if %md.c% is not included
+  if tmphastag(txtinp, "md.c"):
+    c.substt("integrator[inputrec->eI].func", "do_md", doall = True)
+    c.mutfunc2("do_md", iscall = True)
+    # remove the declarations of the variable for the integrator
+    c.rmline('const gmx_intp_t', wcmt = True, doall = True)
+    c.rmline('gmx_integrator_t *func;', off0 = -1, off1 = 3)
+
+
+  # VII. change mdrunner()
+  c.mutfunc2("mdrunner", iscall = True, newend = ", mc.%s);" % c.varmode)
+  c.mutfunc("mdrunner")
+
+  # VIII. insert the prototype of mdrunner() after a bunch of #include
+  # at the beginning of the file
+  i = len(c.s) - 1
+  while i >= 1:
+    if c.s[i].startswith("#include") and c.s[i-1].startswith("#include"):
+      break
+    i -= 1
+  c.addln(i+1, proto)
+
   # clear the ``if (do_md == do_md\n)'' mess, after replacing integrator
   # cf. v4.5, runner.c, line 785
   c.rmline("if (do_md == do_md", off1 = 2)
@@ -349,7 +363,8 @@ def get_runner_c(obj, fn = None, hdrs = {}):
   c.substt("i,m,", "", "i,m,nChargePerturbed")
   c.rmline("real tmpr1,tmpr2;")
   c.rmline("double nodetime=0,realtime;")
-  return c
+  return c.s
+
 
 
 def mdrun_c_addopt(c):
@@ -376,12 +391,14 @@ def mdrun_c_addopt(c):
     c.addln(c.begin, '  %sint %s = 0;\n' % (pfx, c.varmode))
 
 
-def get_mdrun_c(obj, fn = None, hdrs = {}):
+
+def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read mdrun.c, and remove junks '''
 
+  if not tmphastag(txtinp, "mdrun.c"): return ""
   if not fn: fn = "mdrun.c"
 
-  c = CCGMX(fn, obj, hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
   if c.findblk("static const char \*desc", ending = None) >= 0: pfx = "static "
   else: pfx = ""
@@ -404,6 +421,6 @@ def get_mdrun_c(obj, fn = None, hdrs = {}):
       starter = "/*", ending = "*/")
   c.rmblock("PCA_Flags |= PCA_NOT_READ_NODE;",
       starter = "/*", ending = "*/")
-  return c
+  return c.s
 
 

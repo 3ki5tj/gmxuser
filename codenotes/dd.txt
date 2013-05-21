@@ -4,7 +4,7 @@ Domain decopmosition
 Overview
 ---------
  o init_domain_decomposition()
- o make_dd_communicators() separates PP/PME nodes 
+ o make_dd_communicators() separates PP/PME nodes
      cr->duty =  DUTY_PP (1) or DUTY_PME (2);
    then by using `cr->duty' as the group id, and calling MPI_Comm_split
      we get a communicator among all PP nodes.
@@ -126,7 +126,7 @@ split_communicator()
   MPI_Comm_rank(comm_cart, &rank);
   cr->mpi_comm_mysim = comm_cart;
   cr->sim_nodeid = rank;
-  
+
   cr->duty = DUTY_PP or DUTY_PME;
   MPI_Comm_split(cr->mpi_comm_mysim, cr->duty,
     dd_index(comm->ntot, dd->ci), &cr->mpi_mygroup);

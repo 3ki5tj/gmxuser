@@ -1,24 +1,27 @@
 #!/usr/bin/env python
 
-'''
-generic code changer
-'''
+''' a generic code changer class '''
 
-import re, getopt, sys
+import re, getopt, os, sys
+from ccutil import str2re, tab2sp
 
 class CC:
   ''' Code-Changer: basic class of changing code '''
-  def __init__(c, fn, hdrs = {}):
-    ''' read the input file `fn', parses into lines `c.s'
-        hdrs gives a list of existing #include
-        `fn' can alternatively be a list of strings '''
-    if type(fn) == list: # input is a list of strings
-      c.s = fn
-    elif fn:  # input is a file name
+
+  def __init__(c, fn, src = [], hdrs = {}):
+    ''' `fn' is the input file name
+        `src' is the input text, if not given explicitly
+              `src' is read from the input file `fn'
+        `hdrs' gives a list of existing #include '''
+    c.s = src
+    if not src and fn: # src is not explicitly specified
       c.s = open(fn).readlines()
-    else: c.s = []
-    c.s = CC.tab2sp0( c.s ) # tabs to spaces
-    c.fname = fn
+
+    if type(c.s) == str: # input is a string
+      c.s = c.s.splitlines(True) # parse it to lines
+
+    c.s = tab2sp( c.s ) # tabs to spaces
+    c.filename = fn
     c.begin = 0
     c.hdrs = hdrs
 
@@ -43,8 +46,8 @@ class CC:
 
   def substt(c, find, repl, pat = None, doall = False, verbose = False):
     ''' same as `subs', but `find' and `pat' are strings '''
-    if find: find = CC.tore0(find)
-    if pat: pat = CC.tore0(pat)
+    if find: find = str2re(find)
+    if pat: pat = str2re(pat)
     if verbose: print "find %s, pattern %s" % (find, pat)
     c.subs(find, repl, pat, doall, verbose)
 
@@ -65,7 +68,7 @@ class CC:
 
   def findline(c, pat):
     ''' same as `findln', but `pat' is a plain string, not a regular expression '''
-    return c.findln(CC.tore0(pat))
+    return c.findln( str2re(pat) )
 
 
   def rmln(c, pat, doall = False, off0 = 0, off1 = 1, wcmt = False, verbose = False):
@@ -99,7 +102,7 @@ class CC:
 
   def rmline(c, pat, doall = False, off0 = 0, off1 = 1, wcmt = False, verbose = False):
     ''' same as `rmln', but `pat' is a plain string, not a regular expression '''
-    c.rmln(CC.tore0(pat), doall, off0, off1, wcmt, verbose)
+    c.rmln( str2re(pat), doall, off0, off1, wcmt, verbose)
 
 
   def addln(c, index, line):
@@ -158,7 +161,7 @@ class CC:
         i += 1
       else:
         print "cannot find if starter from line %s (%s)\n%s" % (
-            start, c.fname, c.s[start])
+            start, c.filename, c.s[start])
         raise Exception
 
     # search the block ending
@@ -241,12 +244,12 @@ class CC:
   def rmblock(c, pat, doall = False, starter = "if", ending = None,
       sindent = None, wsp = True, verbose = False):
     ''' pattern can be a regular expression '''
-    c.rmblk(CC.tore0(pat), doall, starter, ending, sindent, wsp, verbose)
+    c.rmblk( str2re(pat), doall, starter, ending, sindent, wsp, verbose)
 
 
   def rmfunc(c, functag, starter = None, regex = False):
     ''' convenient wrapper for rmblk '''
-    if not regex: functag = CC.tore0(functag)
+    if not regex: functag = str2re(functag)
     c.rmblk(functag, starter = starter, ending = "}", wsp = True)
 
 
@@ -275,7 +278,7 @@ class CC:
 
 
   def findblock(c, pat, ending = "}", wsp = False, i0 = 0, i1 = -1, sindent = None, verbose = 0):
-    return c.findblk(CC.tore0(pat), ending, wsp, i0, i1, sindent, verbose)
+    return c.findblk(str2re(pat), ending, wsp, i0, i1, sindent, verbose)
 
 
   def shdr(c):
@@ -287,7 +290,7 @@ class CC:
         if key in c.hdrs:
           start = i
           end = i+1
-          # a preceeding comment
+          # a preceding comment
           if i > 0 and re.search("/\*.*\*/", c.s[i-1]):
             start -= 1
           # a preprocessor block
@@ -370,168 +373,4 @@ class CC:
       raise Exception
     return c.s[c.begin : c.end+1]
 
-
-  """  deprecated
-  def addfuncpfx(c, func, pfx, newfunc = None, doall = True):
-    ''' change the function name `func' to `pfx_func'
-    or if `newfunc' is given, change `func' to `pfx_newfunc' '''
-
-    if newfunc == None: newfunc = func
-
-    for i in range(len(c.s)):
-      # search function name line by line
-      pos0 = c.s[i].find(func)
-      if pos0 >= 0:
-        pos1 = pos0 + len(func)
-        c.s[i] = c.s[i][:pos0] + pfx + "_" + newfunc + c.s[i][pos1:]
-        if not doall:
-          break
-  """
-
-
-  @staticmethod
-  def beautify0(s):
-    ''' make code better looking by calling cspacer.py '''
-    s = [ln.rstrip() + '\n' for ln in s]
-    try: # to improve code by cspacer
-      import cspacer as cs
-      cs.verbose = 0
-      # turn on advanced options
-      cs.use_rule_add = True
-      cs.use_rule_paren2 = True
-      cs.use_rule_nocppcmt = True
-      s, nchanges = cs.addspace0(s)
-    except ImportError: pass
-    return s
-
-
-  @staticmethod
-  def tore0(s):
-    ''' many functions below require the pattern to be regular expression
-    so this function translate a plain string to a regular expression '''
-
-    # list of special characters
-    special = "+-*.&?!|()[]{}"
-    t = ""
-    s = re.sub("\s+", " ", s)
-    for i in range(len(s)):
-      if s[i].isspace(): c = "\s+"
-      elif s[i] in special: c = "\\" + s[i]
-      else: c = s[i]
-      t += c
-    return t
-
-
-  @staticmethod
-  def save0(fn, s):
-    # remove trailing spaces
-    s = CC.beautify0(s)
-    print "writing %s ..." % fn
-    open(fn, "w").writelines(s)
-
-
-  @staticmethod
-  def temprepl0(s, d):
-    ''' for each key in `d' in `s', replace it with `d[key]' '''
-    snew = s
-    for key in d:
-      snew = snew.replace(key, d[key])
-    return snew
-
-
-  @staticmethod
-  def tagrepl0(templ, d):
-    '''
-    in the template `templ' (string array)
-    find a line that matches any key in `d'
-    replace it with `d[key]' (string array)
-    This is used in the main function of spider0v45.py
-    '''
-    src = templ[:]
-    for key in d:
-      spat = key.strip()
-      # strip away `/*' and `*/'
-      if spat.startswith("/*"): spat = spat[2:].lstrip()
-      if spat.endswith("*/"): spat = spat[:-2].rstrip()
-
-      # `srep' is the actual code, as a string
-      srep = ''.join(d[key]) + '\n'
-
-      for i in range(len(src)):
-        ln = src[i].strip()
-        if (ln.find(spat) >= 0 and ln.startswith("/*")):
-          src[i] = srep   # replace it with `srep'
-
-      '''
-      # the regular expression version is slow and troublesome
-      spat = CC.tore0(key)
-      prog = re.compile(spat)
-      srep = ''.join(d[key]) + '\n'
-      for i in range(len(src)):
-        if prog.search(src[i]):
-          src[i] = prog.sub(srep, src[i])
-      '''
-      src = ''.join(src).splitlines(True)
-    return src
-
-
-  @staticmethod
-  def gettabsize0(s, deftab = 4):
-    ''' try to guess the tab size '''
-    for i in range(len(s)):
-      if len(s[i].strip()): break
-    else:
-      return deftab
-
-    ln = s[i]
-    if not ln.startswith("/*"): return deftab
-    m = re.search("tab-width:\s*([0-9]+);", ln)
-    if not m: return deftab
-    return int(m.group(1))
-
-
-  @staticmethod
-  def tab2sp0(s, ntab = 0):
-    ''' convert tabs to spaces '''
-    if ntab <= 0:
-      ntab = CC.gettabsize0(s)
-      #print "tab size is %d" % ntab
-
-    for i in range(len(s)):
-      while True: # don't stop until every tab is killed
-        pos = s[i].find("\t")
-        if pos < 0: break
-        nsp = ntab - (pos % ntab)
-        s[i] = s[i][:pos] + " " * nsp + s[i][pos+1:]
-    return s
-
-  @staticmethod
-  def proto2call(proto, indent = 2):
-    ''' translate function definition to a typical call
-        `proto' is a string of lines
-        indent is the number of spaces in an indent '''
-
-    call = proto[:]
-    # first get function name
-    par = call[0].find("(")
-    name = call[0][:par]
-    j = name.rfind(" ")
-    call[0] = call[0][j+1:]
-    n = len(call)
-    for i in range(n):
-      s = call[i]
-      # j0 is the position of first parameter
-      if i == 0:
-        j0 = s.find("(") + 1
-      else: j0 = s.index(s.lstrip()[0]) # first nonblank character
-
-      ls = call[i][j0:].strip().rstrip(",)") # ls the parameter list
-      als = ""
-      for pa in ls.split(","):
-        arr = pa.split()
-        if len(arr) >= 2:
-          als += arr[1].strip("*[]") + ", "
-      if i == n-1: als = als.rstrip(" ,") + ");"
-      call[i] = ' '*indent + s[:j0] + als.rstrip() + "\n"
-    return call
 

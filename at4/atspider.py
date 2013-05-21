@@ -8,7 +8,7 @@ especially useful for GROMACS 4.5
 '''
 
 import re, getopt, os, sys
-from cc import CC
+from cc import CC, savelines, proto2call
 from ccgmx import CCGMX
 
 tgtver = (1, 2)  # do atver from 1 to 2, that is md1 and md2
@@ -268,7 +268,7 @@ def mkmdx_c(atver):
   if md_c.isgmx4: fnout = "md%da.c" % atver
   else: fnout = "md%d.c" % atver
 
-  CC.save0(fnout, s)
+  savelines(fnout, s)
 
 
 class CCutil(CC):
@@ -383,7 +383,7 @@ def do_force1(cu, cf):
   call, proto, body = cf.doforcedef()
   #print ''.join(call), ''.join(atproto); raw_input()
   # call do_force()
-  call = CC.proto2call(call)
+  call = proto2call(call)
   decl = ["  int k;\n", "  real scl;\n", "\n"]
   forcescl = [s + '\n' for s in
   '''
@@ -453,7 +453,7 @@ def mkmdxutil_h(atver):
 
   do_force(util_h, force_c, forcelow_c)
 
-  CC.save0(fnout, util_h.s)
+  savelines(fnout, util_h.s)
 
 
 def usage():

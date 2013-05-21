@@ -8,12 +8,13 @@
 
 
 import re, getopt, os, sys
-from cc import CC
 from ccgmx import CCGMX
+from ccutil import tmphastag
 
-def get_bondfree_c(obj, fn = None, hdrs = {}):
+def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+  if not tmphastag(txtinp, "bondfree.c"): return ""
   fn = "../gmxlib/bondfree.c"
-  c = CCGMX(fn, obj, hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
 
   c.rmfunc("int glatnr(int *global_atom_index,int i)")
@@ -60,13 +61,14 @@ def get_bondfree_c(obj, fn = None, hdrs = {}):
   # change function name
   c.mutfunc2("calc_bonds", iscall = False)
 
-  return c
+  return c.s
 
 
-def get_force_c(obj, fn = None, hdrs = {}):
+def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+  if not tmphastag(txtinp, "force.c"): return ""
   if not fn: fn = "../mdlib/force.c"
 
-  c = CCGMX(fn, obj, hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
 
   c.rmfunc("t_forcerec *mk_forcerec(void)")
@@ -98,13 +100,14 @@ def get_force_c(obj, fn = None, hdrs = {}):
   c.rmline("static double t_fnbf=0.0, t_wait=0.0;")
   c.substt("bDoEpot,bSepDVDL", "bSepDVDL")
   c.substt("i,nit,status", "i,status")
-  return c
+  return c.s
 
 
-def get_simutil_c(obj, fn = None, hdrs = {}):
+def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+  if not tmphastag(txtinp, "sim_util.c"): return ""
   if not fn: fn = "../mdlib/sim_util.c"
 
-  c = CCGMX(fn, obj, hdrs = hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   c.rmline("#define difftime(end,start)")
@@ -149,7 +152,7 @@ def get_simutil_c(obj, fn = None, hdrs = {}):
   c.subs("e,\s*v,", "v,")
   c.addifdef("matrix\s+boxs;", "GMX_MPI",
       extra = "  bool bBS;\n  float cycles_pme;\n")
-  return c
+  return c.s
 
 
 def mdrun_c_addopt(c):
@@ -182,21 +185,23 @@ def md_c_changemdrunner(c):
       pat = "void\s+mdrunner\(")
   runnerbegin = c.begin
 
-  # II. add $OBJ declaration
+  # II. add %OBJ% declaration
   for j in range(c.end, len(c.s)): # look for a blank line
     if c.s[j].strip() == "":
       break
   else:
     print "cannot find the variable list of the function %s" % c.fmap["mdrunner"]
     raise Exception
-  c.addln(j, "    %s_t *%s;\n" % (c.obj, c.obj) )
+  c.addln(j, "    %s_t *%s;\n" % (c.pfx, c.obj) )
 
-  # III. add $PFX_finish() at the very end of the function
+  # III. add %PFX%_done() at the very end of the function
   k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
-  c.addln(k2, c.temprepl('''  if ($OBJ != NULL)
-    $PFX_finish($OBJ);''', True) )
+  c.addln(k2, c.temprepl('''
+  if (%OBJ% != NULL)
+    %PFX%_done(%OBJ%);
+''', True) )
 
-  # IV. add a call to the $PFX_init() function
+  # IV. add a call to the %PFX%_init() function
   # after the signals are installed
   for i in range(k1, k2):
     # cf. v4.0, md.c, line 1414
@@ -208,11 +213,11 @@ def md_c_changemdrunner(c):
     raise Exception
 
   prjinit = c.temprepl( r'''
-  /* initialize project $OBJ, cr->duty PP/PME has been assigned */
-  $OBJ = $PFX_init($PFX_opt2fn("-cfg", nfile, fnm),
-      Flags & MD_STARTFROMCPT, mtop, inputrec, cr, $MODE);
-  if ((cr->duty & DUTY_PP) && $OBJ == NULL) {
-    fprintf(stderr, "Failed to initialize $OBJ\n");
+  /* initialize project %OBJ%, cr->duty PP/PME has been assigned */
+  %OBJ% = %PFX%_init(%PFX%_opt2fn("-cfg", nfile, fnm),
+      Flags & MD_STARTFROMCPT, mtop, inputrec, cr, %MODE%);
+  if ((cr->duty & DUTY_PP) && %OBJ% == NULL) {
+    fprintf(stderr, "Failed to initialize %OBJ%\n");
     exit(1);
   }''', parse = True)
   c.addln(i, prjinit)
@@ -235,13 +240,13 @@ def md_c_changemdrunner(c):
 def md_c_changedomd(c):
   '''
   change the function md()
-  * add a function $PFX_move()
-  * change do_force() to $PFX_doforce()
+  * add a function %PFX%_move()
+  * change do_force() to %PFX%_doforce()
   '''
 
   c.mutfunc2("do_md", iscall = False)
 
-  # add a call $PFX_move()
+  # add a call %PFX%_move()
   offset = -1
   if c.findblk("/\*.*Time for performance", ending = None) < 0:
     raise Exception
@@ -249,14 +254,14 @@ def md_c_changedomd(c):
   bxtc = "bXTC"
   callmove = c.temprepl( r'''
       /* update data, temperature and change at->scale */
-      if (0 != $PFX_move($OBJ, enerd,
+      if (0 != %PFX%_move(%OBJ%, enerd,
            step, bFirstStep, bLastStep, bGStat,
            bXTC, bNS, cr) ) {
         exit(1);
       }''', parse = True)
   c.addln(i, callmove)
 
-  # change the call do_force to $PFX_doforce
+  # change the call do_force to %PFX%_doforce
   c.mutfunc2("do_force", iscall = True)
   c.subs(",ed,", ",NULL,", "fp_field,ed,")
 
@@ -264,11 +269,13 @@ def md_c_changedomd(c):
   c.rmline("real timestep=0;")
 
 
-def get_md_c(obj, fn = None, hdrs = {}):
+def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read md.c, and remove junks '''
+  
+  if not tmphastag(txtinp, "md.c"): return ""
   if not fn: fn = "md.c"
 
-  c = CCGMX(fn, obj, hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
   md_c_changemdrunner(c)
   md_c_changedomd(c)
@@ -279,22 +286,22 @@ def get_md_c(obj, fn = None, hdrs = {}):
   c.substt("int repl_ex_nst,int repl_ex_seed,", "", doall = True)
   c.substt("repl_ex_nst,repl_ex_seed,", "", doall = True)
   c.substt("if (do_md == do_md) {", "{")
-  return c
+  return c.s
 
 
-def get_runner_c(obj, fn = None, hdrs = {}):
+def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   # v4.0 doesn't have a functional runner.c
   # the functions are included in md.c
-  c = CCGMX(None, obj, hdrs)
-  return c
+  return ""
 
 
-def get_mdrun_c(obj, fn = None, hdrs = {}):
+def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read mdrun.c, and remove junks '''
 
+  if not tmphastag(txtinp, "mdrun.c"): return ""
   if not fn: fn = "mdrun.c"
 
-  c = CCGMX(fn, obj, hdrs)
+  c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
 
   # add a parameter `mode' to mdrunner() call
@@ -314,6 +321,6 @@ def get_mdrun_c(obj, fn = None, hdrs = {}):
   c.rmline("bool bCart = FALSE;")
   c.rmline("bool HaveCheckpoint;")
   c.substt(",*fptest;", ";")
-  return c
+  return c.s
 
 

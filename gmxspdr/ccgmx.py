@@ -18,52 +18,65 @@ class CCGMX(CC):
 
   # these are class level ``static'' variables
   # so they can be set only once
-  isgmx4 = 0
   version = -1
+  rootdir = None
+  isgmx4 = 0
   sopenmm = "GMX_OPENMM"
 
   # use a dictionary to map function names
+  # the mapped functions will further have a prefix
   fmap0 = {
-    "mdrunner": "runner",
-    "do_md": "domd",
-    "do_force": "doforce",
-    "do_force_lowlevel": "doforcelow",
-    "calc_bonds": "calcbonds",
+    "mdrunner":           "runner",
+    "do_md":              "domd",
+    "do_force":           "doforce",
+    "do_force_lowlevel":  "doforcelow",
+    "calc_bonds":         "calcbonds",
   }
 
-  obj = "foo" # project name
-  pfx = "foogmx" # function prefix
-  varmode = "foomode" # this is an integer parameter to be passed from the command line
+  obj = "foo" # common variable name for the object
+  pfx = "gmxfoo" # function prefix
+  varmode = "foomode" # this is an integer parameter
+                      # passed from the command line
+                      # better mechanism in the future?
 
-  def __init__(c, fn, obj = None, hdrs = {}):
+  def __init__(c, fn, src = [],
+               obj = None, pfx = None, hdrs = {}):
     # call the base class constructor
-    CC.__init__(c, fn, hdrs)
-    # compute GROMACS version
+    CC.__init__(c, fn, src, hdrs)
+
+    # compute the GROMACS version
     c.getversion()
     if obj != None:
       c.obj = obj
-      c.pfx = c.obj + "gmx"
+      c.pfx = pfx
+      if not c.pfx:
+        c.pfx = "gmx" + c.obj
       c.varmode = c.obj + "mode"
       c.fmap = {}
       for key in c.fmap0: # add a prefix
         c.fmap[key] = c.pfx + "_" + c.fmap0[key]
 
 
-  def temprepl(c, s, parse = False):
+  def temprepl(c, s, parse = False, d0 = None):
     ''' template replacement '''
     d = {
-      "$OBJ" : c.obj,
-      "$PFX" : c.pfx,
-      "$MODE" : c.varmode
+      "%OBJ%"   : c.obj,
+      "%PFX%"   : c.pfx,
+      "%MODE%"  : c.varmode
     }
-    s = CC.temprepl0(s, d)
-    if parse:
-      s = [ln + '\n' for ln in s.splitlines()] + ['\n']
+    if d0:
+      d = dict( list(d.items()) + list(d0.items()) )
+    for key in d:
+      s = s.replace( key, d[key] )
+    if parse: # parse the string into lines with '\n'
+      s = s.splitlines(True)
     return s
 
 
   def mutfunc(c, func, doall = True):
     ''' replace the function name `func' by fmap[func] '''
+
+    # construct a new function name
     if func in c.fmap:
       nfunc = c.fmap[func]
     else:
@@ -81,33 +94,34 @@ class CCGMX(CC):
           break
 
 
-  def mutfunc2(c, func, iscall = True, newend = None, pat = None, verbose = False):
-    ''' replace `func' by fmap[func] '''
+  def mutfunc2(c, func, iscall = True, newend = None,
+               pat = None, verbose = False):
+    ''' replace `func' by the new name `fmap[func]'
+        also add an object to the last parameter/argument '''
+
     if not func in c.fmap:
       print "cannot mutate function %s" % func
+      raise Exception
 
     # (?<!\w) means that the preceeding character is not a word [a-zA-Z_]
     # (?!\w)  means that the following character is not a word
     if pat == None:
       pat = "(?<!\w)" + "(" + func + ")" + "\s*\(\s*\w"
 
-    if iscall:
+    if iscall: # function call, looks like: func(...);
       ending = ");"
       oldend = "\);$"
       if not newend:
         newend = ", %s);" % c.obj
-    else:
+    else: # function definition, looks like: func()\n{
       ending = ")"
       oldend = "\)$"
       if not newend:
-        newend = ", %s_t *%s)" % (c.obj, c.obj)
+        newend = ", %s_t *%s)" % (c.pfx, c.obj)
 
     if c.findblk(pat, ending = ending, verbose = verbose) < 0:
       print "cannot find [%s], ending [%s]" % (func, ending)
       raise Exception
-
-    #if func.startswith("mdrunner"):
-    #  raw_input("New function:\n" + ''.join(c.s[c.begin:c.end+1]) + "\nfor %s\n" % func)
 
     # add function prefix
     c.s[c.begin] = re.sub(func, c.fmap[func], c.s[c.begin])
@@ -116,7 +130,6 @@ class CCGMX(CC):
     s_end = c.s[c.end].rstrip() + "\n"
     c.s[c.end] = re.sub(oldend, newend, s_end)
 
-    #raw_input("New function:\n" + ''.join(c.s[c.begin:c.end+1]) + "\nfor %s\n" % func)
 
 
   def rmcopyrite(c):
@@ -250,6 +263,7 @@ class CCGMX(CC):
     c.rmif0()
     c.rmblock("G R O M A C S", doall = False, starter = "/*", ending = "*/")
     c.shdr()
+    c.rmdf("GMX_FAHCORE")
     c.rmcopyrite()
     c.rmionize()
     c.rmtcr()
@@ -258,10 +272,6 @@ class CCGMX(CC):
     c.rmre()
     c.rmopenmm()
     c.rmetc()
-
-    # remove the declarations of the variable for the integrator
-    c.rmline('const gmx_intp_t', wcmt = True, doall = True)
-    c.rmline('gmx_integrator_t *func;', off0 = -1, off1 = 3)
 
     c.rmline('"pullx", ffOPTWR', doall = True)
     c.rmline('"pullf", ffOPTWR', doall = True)
@@ -291,25 +301,45 @@ class CCGMX(CC):
     # we assign the class-level, instead of instance-level,
     # variables, such that, when the next time an instance
     # is create, the version needs not to be computed again
-    (CCGMX.version, CCGMX.isgmx4, CCGMX.sopenmm) = getgmxver()
+    (CCGMX.version, CCGMX.rootdir, CCGMX.isgmx4, CCGMX.sopenmm
+        ) = getgmxver()
 
     # verify the instance has the values
-    print "gromacs version: %d; v4.0? %s; openmm string: %s" % (
+    print "GROMACS version: %d; v4.0? %s; OPENMM string: %s" % (
         c.version, bool(c.isgmx4), c.sopenmm)
 
 
 
+def getgmxroot(root = None):
+  ''' determine the GROMACS root directory '''
+
+  if root and os.path.exists(root): # the user given one exists
+    return root
+  curdir = os.path.abspath( os.getcwd() )
+  while not (curdir == "/" or curdir.endswith(":\\")):
+    curdir = os.path.abspath( os.path.join(curdir, os.pardir) )
+    # there is a file `AUTHORS' under the root
+    if os.path.exists( os.path.join( curdir, "AUTHORS" ) ):
+      break
+  else:
+    print "cannot determine the GROMACS root from " + os.getcwd()
+    raise Exception
+  return curdir
+
+
+
 # @staticmethod
-def getgmxver():
+def getgmxver(gmxroot = None):
   ''' get GROMACS version from CMakeLists.txt or configure.ac
       works for GROMACS v4.0 and v4.5 '''
+  gmxroot = getgmxroot(gmxroot)
 
-  cfgac = "../../configure.ac"
-  cmake = "../../CMakeLists.txt"
+  cfgac = os.path.join(gmxroot, "configure.ac")
+  cmake = os.path.join(gmxroot, "CMakeLists.txt")
 
   if os.path.exists(cmake): # version 4.5 or later
     for s in open(cmake):
-      # we look for something like that
+      # we look for a line that looks like
       # set(PROJECT_VERSION "4.5.6-dev")
       ln = s.strip()
       if ln.startswith('set(PROJECT_VERSION'):
@@ -347,6 +377,6 @@ def getgmxver():
   else:  # there is neither CMakeLists.txt nor configure.ac
     raise Exception
 
-  return version, isgmx4, sopenmm
+  return version, gmxroot, isgmx4, sopenmm
 
 
