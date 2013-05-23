@@ -13,18 +13,15 @@
 
 import re, getopt, os, sys
 from ccgmx import CCGMX
-from ccutil import tmphastag, getgmx
+from ccutil import tmphastag, getgmx, pathswitch
+
+
 
 def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read bondfree.c and remove junks '''
 
   if not tmphastag(txtinp, "bondfree.c"): return ""
-  if not fn:
-    if getgmx()[0] < 40600:
-      fn = os.path.join(getgmx.root, "src", "gmxlib")
-    else:
-      fn = os.path.join(getgmx.root, "src", "gromacs", "gmxlib")
-    fn = os.path.join(fn, "bondfree.c")
+  if not fn: fn = pathswitch("gmxlib/bondfree.c", "gromacs/gmxlib/bondfree.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
@@ -110,12 +107,7 @@ def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' real force.c and remove junks '''
 
   if not tmphastag(txtinp, "force.c"): return ""
-  if not fn:
-    if getgmx()[0] < 40600:
-      fn = os.path.join(getgmx.root, "src", "mdlib")
-    else:
-      fn = os.path.join(getgmx.root, "src", "gromacs", "mdlib")
-    fn = os.path.join(fn, "force.c")
+  if not fn: fn = pathswitch("mdlib/force.c", "gromacs/mdlib/force.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
@@ -157,12 +149,7 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read sim_util.c, and remove junks '''
 
   if not tmphastag(txtinp, "sim_util.c"): return ""
-  if not fn:
-    if getgmx()[0] < 40600:
-      fn = os.path.join(getgmx.root, "src", "mdlib")
-    else:
-      fn = os.path.join(getgmx.root, "src", "gromacs", "mdlib")
-    fn = os.path.join(fn, "sim_util.c")
+  if not fn: fn = pathswitch("mdlib/sim_util.c", "gromacs/mdlib/sim_util.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
@@ -215,7 +202,7 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
   # change function names
   c.mutfunc2("do_force", iscall = False)
-  if getgmx()[0] >= 40600:
+  if getgmx.ver >= 40600:
     c.mutfunc2("do_force_cutsVERLET", iscall = False)
     c.mutfunc2("do_force_cutsVERLET", iscall = True)
     c.mutfunc2("do_force_cutsGROUP",  iscall = False)
@@ -239,43 +226,53 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
 
 def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
-  ''' read md.c, and remove junks '''
+  ''' modify md.c '''
 
   if not tmphastag(txtinp, "md.c"): return ""
-  if not fn:
-    if getgmx()[0] < 40600:
-      fn = os.path.join(getgmx.root, "src", "kernel")
-    else:
-      fn = os.path.join(getgmx.root, "src", "programs", "mdrun")
-    fn = os.path.join(fn, "md.c")
+  if not fn: fn = pathswitch("kernel/md.c", "programs/mdrun/md.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
 
-  # change the name of do_md()
+  # change the definition of do_md()
   c.mutfunc2("do_md", iscall = False)
+  declend = c.end
 
-  # add a call %PFX%_move()
-  #offset = 1
-  #if c.findblk("/\*.*END PREPARING EDR OUTPUT", ending = None) < 0:
-  #  raise Exception
+  # insert a variable `%PFX_moved%'
+  for i in range(declend, len(c.s)):
+    if c.s[i].strip() == "{":
+      break
+  else:
+    print "cannot find `{' after decl. of `do_md()' in %s, %s\n%s" % (
+        c.fn, declend, ''.join( c.s[c.begin:c.end+1] ) )
+    raise Exception
+  varmv = c.pfx + "_moved"
+  c.addln(i + 1, "\tint %s = 0;\n" % varmv)
+
+
+  # add a call %pfx%_move()
   i = c.findline("bFirstStep = FALSE;", verbose = True)
   if i < 0: raise Exception
   callmove = c.temprepl(r'''
-        /* update %OBJ% */
-        if (0 != %PFX%_move(%OBJ%, enerd,
-             step, bFirstStep, bLastStep, bGStat,
-             mdof_flags & MDOF_XTC, bNS, cr) ) {
-          exit(1);
-        }
-
-''', parse = True)
+        /* update %obj% at the end of an MD step */
+        ''' + varmv + ''' = %pfx%_move(%obj%, NULL, fplog, step,
+             bFirstStep, bLastStep, bGStat,
+             mdof_flags & MDOF_XTC, bNS, enerd,
+             state_global, state, &f, top_global, top,
+             ir, cr, mdatoms, fr, vsite, shellfc, constr,
+             nrnb, wcycle);''' + "\n\n", parse = True)
   c.addln(i, callmove)
 
   # if we also need to modify sim_util.c, then
   # change the call do_force()
   if tmphastag(txtinp, "sim_util.c"):
     c.mutfunc2("do_force", iscall = True)
+
+  # change a few bExchanged references to `varmv'
+  i = c.findline("if (bNS && ir->nstlist == -1)")
+  c.addln(i, "\t\t\tbNS = bNS || %s;\n" % varmv)
+  c.substt("bFirstStep", "bFirstStep || " + varmv,
+      "set_nlistheuristics(&nlh")
 
   # remove useless blocks
   # v4.5, md.c, lines 526-534, 795-804, 934-946
@@ -302,15 +299,10 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
 
 def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
-  ''' read runner.c, and remove junks '''
+  ''' modify runner.c '''
 
   if not tmphastag(txtinp, "runner.c"): return ""
-  if not fn:
-    if getgmx()[0] < 40600:
-      fn = os.path.join(getgmx.root, "src", "kernel")
-    else:
-      fn = os.path.join(getgmx.root, "src", "programs", "mdrun")
-    fn = os.path.join(fn, "runner.c")
+  if not fn: fn = pathswitch("kernel/runner.c", "programs/mdrun/runner.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
@@ -329,11 +321,15 @@ def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
     c.addln(c.end+1, '    mda->%s = %s;\n' % (c.varmode, c.varmode))
 
   # I. search the declaration of the function mdrunner()
-  c.mutfunc2("mdrunner", iscall = False, newend = ", int %s)" % c.varmode,
+  c.mutfunc2("mdrunner", iscall = False,
+      newend = ", int %s)" % c.varmode,
       pat = "int\s+mdrunner\(")
+  # save the location of the definition of mdrunner()
+  declbegin = c.begin
+  declend = c.end
 
-  # II. add %OBJ% declaration
-  for j in range(c.end, len(c.s)): # look for a blank line
+  # II. add %obj% declaration
+  for j in range(declend, len(c.s)): # look for a blank line
     if c.s[j].strip() == "":
       break
   else:
@@ -342,7 +338,7 @@ def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.addln(j, "    %s_t *%s;\n" % (c.pfx, c.obj) )
 
   # III. save a new prototype of the function
-  proto = c.s[c.begin : c.end + 1]
+  proto = c.s[declbegin : declend + 1]
   #raw_input("The prototype\n" + ''.join(proto))
   last = len(proto) - 1
   proto[last] = proto[last].rstrip() + ";\n"
@@ -350,14 +346,12 @@ def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   proto = ["\n", "/* declare runner() before mdrunner_start_fn() uses it */\n",
       "static\n"] + proto
 
-  # IV. add %PFX%_done() at the very end of the function
-  k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
+  # IV. add %pfx%_done() at the very end of the function
+  k1, k2 = c.getblockend(declend, sindent = "", ending = "}", wsp = False)
   k2 -= 1 # skip the statement "return rc;" cf. v4.5, runner.c, line 892
-  c.addln(k2, c.temprepl('''    if (%OBJ% != NULL)
-      %PFX%_done(%OBJ%);
-''', True) )
+  c.addln(k2, c.temprepl('''    if (%obj% != NULL) %pfx%_done(%obj%, cr);\n''', True) )
 
-  # V. add a call to the %PFX%_init() function
+  # V. add a call to the %pfx%_init() function
   # after the signals are installed
   for i in range(k1, k2):
     # cf. v4.5, runner.c, line 797
@@ -370,25 +364,28 @@ def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
     raise Exception
 
   callinit = c.temprepl(r'''
-    /* initialize project %OBJ%, cr->duty PP/PME has been assigned */
-    %OBJ% = %PFX%_init(%PFX%_opt2fn("-cfg", nfile, fnm),
-        Flags & MD_STARTFROMCPT, mtop, inputrec, cr, %MODE%);
-    if ((cr->duty & DUTY_PP) && %OBJ% == NULL) {
-      fprintf(stderr, "Failed to initialize %OBJ%\n");
+    /* initialize %obj%, cr->duty PP/PME has been assigned */
+    %obj% = %pfx%_init(%pfx%_opt2fn("-cfg", nfile, fnm),
+        Flags & MD_STARTFROMCPT, state, mtop, inputrec, cr, %mode%);
+
+    /* a PME-only node may return NULL */
+    if ((cr->duty & DUTY_PP) && %obj% == NULL) {
+      fprintf(stderr, "Failed to initialize %obj%\n");
       exit(1);
-    }''', parse = True)
+    }
+    ''', parse = True)
   c.addln(i, callinit)
 
-  # VI. if md.c has to be changed, then
-  # change the call do_md()
-  # NOTE: must compile with md.c, if %md.c% is not included
+  # VI. if md.c has to be changed, change the call do_md()
   if tmphastag(txtinp, "md.c"):
     c.substt("integrator[inputrec->eI].func", "do_md", doall = True)
     c.mutfunc2("do_md", iscall = True)
     # remove the declarations of the variable for the integrator
     c.rmline('const gmx_intp_t', wcmt = True, doall = True)
     c.rmline('gmx_integrator_t *func;', off0 = -1, off1 = 3)
-
+  else:
+    # NOTE: must compile with md.c, if %md.c% is not included
+    print "Warning: tag `%md.c%' not found in", c.fn
 
   # VII. change mdrunner()
   c.mutfunc2("mdrunner", iscall = True, newend = ", mc.%s);" % c.varmode)
@@ -429,42 +426,54 @@ def mdrun_c_addopt(c):
       c.s[c.end - 1] = c.s[c.end - 1].rstrip() + ",\n"
     c.addln(c.end, '    { efMDP, "-cfg",     NULL,       ffOPTRD } /* .cfg file */\n')
   else:
-    print "cannot find fnm section!"
+    print "Error: cannot find fnm section!"
     open("dump.txt", "w").writelines(c.s)
     raise Exception
 
-  # add `-mode'
-  if c.findblk('t_pargs\s*pa\[\]', ending = "};") >= 0:
+  # add the option `-mode'
+  if c.findblock('t_pargs pa[]', ending = "};") >= 0:
     if not c.s[c.end - 1].endswith(","):
       c.s[c.end - 1] = c.s[c.end - 1].rstrip() + ",\n"
-    c.addln(c.end, [ '    { "-mode", FALSE, etINT, {&%s},\n' % c.varmode,
-          '      "a preparation run" }\n' ])
-    if c.s[c.begin].strip().startswith("static"): pfx = "static "
-    else: pfx = ""
-    c.addln(c.begin, '  %sint %s = 0;\n' % (pfx, c.varmode))
+    # add the new option at the end of `pa'
+    c.addln(c.end,
+        [ 
+          '    { "-mode", FALSE, etINT, {&%s},\n' % c.varmode,
+          '      "mode of %s functions" }\n' % c.pfx,
+        ] )
+    
+    static = ""
+    if c.s[c.begin].strip().startswith("static"):
+      static = "static "
+
+    # add a variable
+    c.addln(c.begin, '  %sint %s = 0;\n' 
+                     % (static, c.varmode) )
 
 
 
 def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
-  ''' read mdrun.c, and remove junks '''
+  ''' modify mdrun.c '''
 
   if not tmphastag(txtinp, "mdrun.c"): return ""
-  if not fn:
-    if getgmx()[0] < 40600:
-      fn = os.path.join(getgmx.root, "src", "kernel")
-    else:
-      fn = os.path.join(getgmx.root, "src", "programs", "mdrun")
-    fn = os.path.join(fn, "mdrun.c")
+  if not fn: fn = pathswitch("kernel/mdrun.c", "programs/mdrun/mdrun.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
-  if c.findblk("static const char \*desc", ending = None) >= 0: pfx = "static "
-  else: pfx = ""
-  c.rmblk("char\s*\*desc", starter = None, ending = "};")
-  # simplify the desc
-  c.addln(c.begin, '  %sconst char *desc[] = {"self-contained GROMACS"};\n' % pfx)
+
+  # determine if we need `static'
+  static = ""
+  if c.findblock("static const char *desc", ending = None) >= 0:
+    static = "static "
+
+  # replace the old `desc' string by a simpler one
+  c.rmblock("char *desc", starter = None, ending = "};")
+  c.addln(c.begin, '  %sconst char *desc[] = {"modified GROMACS"};\n'
+                   % static)
+
+  # modify mdrun options
   mdrun_c_addopt(c)
 
+  # change mdrunner, add varmode
   c.mutfunc2("mdrunner", iscall = True, newend = ", %s);" % c.varmode)
   c.mutfunc("mdrunner")
 

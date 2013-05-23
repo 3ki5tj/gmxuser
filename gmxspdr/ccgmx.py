@@ -30,9 +30,9 @@ class CCGMX(CC):
 
   obj = "foo" # common variable name for the object
   pfx = "gmxfoo" # function prefix
-  varmode = "foomode" # this is an integer parameter
-                      # passed from the command line
-                      # better mechanism in the future?
+  varmode = "gmxfoo_mode" # this is an integer parameter
+                          # passed from the command line
+                          # better mechanism in the future?
 
   def __init__(c, fn, src = [],
                obj = None, pfx = None, hdrs = {}):
@@ -46,7 +46,7 @@ class CCGMX(CC):
       c.pfx = pfx
       if not c.pfx:
         c.pfx = "gmx" + c.obj
-      c.varmode = c.obj + "mode"
+      c.varmode = c.pfx + "_mode"
       c.fmap = {}
       for key in c.fmap0: # add a prefix
         c.fmap[key] = c.pfx + "_" + c.fmap0[key]
@@ -55,14 +55,18 @@ class CCGMX(CC):
   def temprepl(c, s, parse = False, d0 = None):
     ''' template replacement '''
     d = {
-      "%OBJ%"   : c.obj,
-      "%PFX%"   : c.pfx,
-      "%MODE%"  : c.varmode
+      "%obj%"   : c.obj,
+      "%pfx%"   : c.pfx,
+      "%mode%"  : c.varmode
     }
     if d0:
       d = dict( list(d.items()) + list(d0.items()) )
+
     for key in d:
       s = s.replace( key, d[key] )
+      s = s.replace( key.upper(), d[key] )
+      s = s.replace( key.lower(), d[key] )
+    
     if parse: # parse the string into lines with '\n'
       s = s.splitlines(True)
     return s

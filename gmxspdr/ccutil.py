@@ -4,11 +4,12 @@
 
     export function list:
     * str2re(s)               translate a plain string to R.E.
-    * tab2sp(s)               convert leading tabs to spaces
     * savelines(fn, s)        save `s' to file `fn'
     * tmphastag(templ, tag)   if `templ' has `tag' or its variants
     * tmptagrep(templ, dic)   replace tags by the dictionary values
     * getgmx()                get GROMACS version, rootdir, ...
+    * pathswitch(pa, pb)      switch between two paths according to
+                              the GROMACS version (4.6)
 '''
 
 import re, os, sys
@@ -33,39 +34,6 @@ def str2re(s):
 
 
 
-def gettabsize(s, deftab = 4):
-  ''' try to guess the tab size '''
-  if not s: return deftab
-  for i in range(len(s)):
-    if len(s[i].strip()): break
-  else:
-    return deftab
-
-  ln = s[i]
-  if not ln.startswith("/*"): return deftab
-  m = re.search("tab-width:\s*([0-9]+);", ln)
-  if not m: return deftab
-  return int(m.group(1))
-
-
-def tab2sp(s, ntab = 0):
-  ''' convert tabs to spaces '''
-
-  if not s: return s
-  if ntab <= 0:
-    ntab = gettabsize(s)
-    #print "tab size is %d" % ntab
-
-  for i in range(len(s)):
-    while True: # don't stop until every tab is killed
-      pos = s[i].find("\t")
-      if pos < 0: break
-      nsp = ntab - (pos % ntab)
-      s[i] = s[i][:pos] + " " * nsp + s[i][pos+1:]
-  return s
-
-
-
 def mkcodepretty(s):
   ''' make code better looking by calling cspacer.py
       `s' is a string array (lines) '''
@@ -73,15 +41,25 @@ def mkcodepretty(s):
   # remove trailing spaces first
   s = [ln.rstrip() + '\n' for ln in s]
 
-  try: # to improve code by cspacer
+  try: # reindent the file
+    import cindent
+    cindent.verbose = 0
+    s = cindent.reindent(s)
+  except ImportError:
+    print "cannot find cindent.py"
+    pass
+
+  try: # improve code by cspacer
     import cspacer as cs
-    cs.verbose = 0
     # turn on advanced options
     cs.use_rule_add = True
     cs.use_rule_paren2 = True
     cs.use_rule_nocppcmt = True
-    s, nchanges = cs.addspace0(s)
-  except ImportError: pass
+    s, nchanges = cs.addspace(s)
+  except ImportError:
+    print "cannot find cspacer.py"
+    pass
+
   return s
 
 
@@ -243,5 +221,17 @@ def getgmx():
         getgmx.ver, getgmx.root, bool(getgmx.isv4), getgmx.sopenmm)
 
   return getgmx.ver, getgmx.root, getgmx.isv4, getgmx.sopenmm
+
+
+
+def pathswitch(patha, pathb, gmxver = 40600, root = None):
+  ''' switch between two paths according to the GROMACS vesion
+      `patha' and `pathb' should be separated by `/' no matter OS '''
+
+  getgmx() # call getgmx() at least once
+  if not root: root = os.path.join(getgmx.root, "src")
+  if getgmx.ver < gmxver: path = patha
+  else: path = pathb
+  return os.path.join(root, *path.split('/'))
 
 

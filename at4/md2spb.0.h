@@ -618,7 +618,7 @@ static int spb_tunedistref(spb_t *spb)
     }
   }
   /* 1. apply the potential scaling factor */
-  if (fabs(spb->distpwrscl - 1.0) > 1e-6){
+  if (fabs(spb->distpwrscl - 1.0) > 1e-6) {
     for (i = 0; i <= spb->bins; i++) {
       x = spb->distref[i];
       spb->distref[i] = (x > 0.0) ? exp(log(x) * spb->distpwrscl) : 0.0;

@@ -59,8 +59,8 @@ gmxspdr.py
 
 ccutil.py         standalone helper functions
 
-cspacer.py        the code beautifier called in ccutil.py
-                  it can be missing however
+cspacer.py        the code beautifiers called in ccutil.py
+cindent.py        they can be missing however
 
 
 * the v4.0 versions are independent of the v4.5 versions

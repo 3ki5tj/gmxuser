@@ -3,7 +3,7 @@
 ''' a generic code changer class '''
 
 import re, getopt, os, sys
-from ccutil import str2re, tab2sp
+from ccutil import str2re
 
 class CC:
   ''' Code-Changer: basic class of changing code '''
@@ -20,7 +20,6 @@ class CC:
     if type(c.s) == str: # input is a string
       c.s = c.s.splitlines(True) # parse it to lines
 
-    c.s = tab2sp( c.s ) # tabs to spaces
     c.fn = fn
     c.begin = 0
     c.hdrs = hdrs
@@ -107,9 +106,10 @@ class CC:
     c.rmln( str2re(pat), doall, off0, off1, wcmt, verbose)
 
 
-  def addln(c, index, line):
+  def addln(c, index, line, after = False):
     ''' add a line or several lines '''
     if type(line) == str: line = [line]
+    if after: index += 1
     c.s = c.s[:index] + line + c.s[index:]
 
 

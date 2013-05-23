@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 
-'''
-* for GROMACS 4.0
-  * get_md_c()
-  * get_mdrun_c()
-'''
+''' similar to ccmdxv45.py, but for GROMACS 4.0 '''
 
 
 import re, getopt, os, sys
@@ -185,7 +181,7 @@ def md_c_changemdrunner(c):
       pat = "void\s+mdrunner\(")
   runnerbegin = c.begin
 
-  # II. add %OBJ% declaration
+  # II. add %obj% declaration
   for j in range(c.end, len(c.s)): # look for a blank line
     if c.s[j].strip() == "":
       break
@@ -194,14 +190,13 @@ def md_c_changemdrunner(c):
     raise Exception
   c.addln(j, "    %s_t *%s;\n" % (c.pfx, c.obj) )
 
-  # III. add %PFX%_done() at the very end of the function
+  # III. add %pfx%_done() at the very end of the function
   k1, k2 = c.getblockend(c.end, sindent = "", ending = "}", wsp = False)
-  c.addln(k2, c.temprepl('''
-  if (%OBJ% != NULL)
-    %PFX%_done(%OBJ%);
-''', True) )
+  c.addln(k2, c.temprepl(
+    ' if (%obj% != NULL) %pfx%_done(%obj%, cr);\n',
+    True) )
 
-  # IV. add a call to the %PFX%_init() function
+  # IV. add a call to the %pfx%_init() function
   # after the signals are installed
   for i in range(k1, k2):
     # cf. v4.0, md.c, line 1414
@@ -213,11 +208,11 @@ def md_c_changemdrunner(c):
     raise Exception
 
   prjinit = c.temprepl( r'''
-  /* initialize project %OBJ%, cr->duty PP/PME has been assigned */
-  %OBJ% = %PFX%_init(%PFX%_opt2fn("-cfg", nfile, fnm),
-      Flags & MD_STARTFROMCPT, mtop, inputrec, cr, %MODE%);
-  if ((cr->duty & DUTY_PP) && %OBJ% == NULL) {
-    fprintf(stderr, "Failed to initialize %OBJ%\n");
+  /* initialize project %obj%, cr->duty PP/PME has been assigned */
+  %obj% = %pfx%_init(%pfx%_opt2fn("-cfg", nfile, fnm),
+      Flags & MD_STARTFROMCPT, state, mtop, inputrec, cr, %MODE%);
+  if ((cr->duty & DUTY_PP) && %obj% == NULL) {
+    fprintf(stderr, "Failed to initialize %obj%\n");
     exit(1);
   }''', parse = True)
   c.addln(i, prjinit)
@@ -240,31 +235,29 @@ def md_c_changemdrunner(c):
 def md_c_changedomd(c):
   '''
   change the function md()
-  * add a function %PFX%_move()
-  * change do_force() to %PFX%_doforce()
+  * add a function %pfx%_move()
+  * change do_force() to %pfx%_doforce()
   '''
 
   c.mutfunc2("do_md", iscall = False)
 
-  # add a call %PFX%_move()
+  # add a call %pfx%_move()
   #offset = -1
   #if c.findblk("/\*.*Time for performance", ending = None) < 0:
   #  raise Exception
   #i = c.begin + offset
   i = c.findline("bFirstStep = FALSE;", verbose = True)
   if i < 0: raise Exception
-  callmove = c.temprepl( r'''
-    /* update data, temperature and change at->scale */
-    if (0 != %PFX%_move(%OBJ%, enerd,
-         step, bFirstStep, bLastStep, bGStat,
-         bXTC, bNS, cr) ) {
-      exit(1);
-    }
-
-''', parse = True)
+  callmove = c.temprepl(r'''
+    /* update %obj% at the end of an MD step */
+    %pfx%_move(%obj%, NULL, fplog, step,
+         bFirstStep, bLastStep, bGStat, bXTC, bNS, enerd,
+         state_global, state, &f, top_global, top,
+         ir, cr, mdatoms, fr, vsite, shellfc, constr,
+         nrnb, wcycle);''' + "\n\n", parse = True)
   c.addln(i, callmove)
 
-  # change the call do_force to %PFX%_doforce
+  # change the call do_force to %pfx%_doforce
   c.mutfunc2("do_force", iscall = True)
   c.subs(",ed,", ",NULL,", "fp_field,ed,")
 

@@ -34,6 +34,7 @@ runner.c/mdrunner()
 
   cr->dd = init_domain_decomposition();
   make_dd_communicators();
+    *  PP and PME-only nodes are decided here
 
   gmx_setup_nodecomm(fplog, cr);
 
@@ -41,8 +42,8 @@ runner.c/mdrunner()
     if ( DOMAINDECOMP(cr) ) {
       bcast_state_setup(cr, state);
         * defined in mvdata.c; it broadcasts
-            state->natoms, ngtc, nnhpres,
-            nhchainlength, nrng, nrngi, flags
+          state->natoms, ngtc, nnhpres,
+          nhchainlength, nrng, nrngi, flags
 
     } else if ( PAR(cr) ) {
       bcast_state(cr, state, TRUE);

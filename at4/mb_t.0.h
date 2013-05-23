@@ -768,7 +768,7 @@ static double mb_etlr(mb_t *mb, int ib, int flags)
   sm0 = (mb->flags & MB_DAMP) ? (mb->xsums + ib*mb->m-mb->js[ib]) : mb->sums;
 
   if (mb->flags & MB_ONEBIN || jt == js + 1) /* window reduced to a bin */
-    return mb->et[ib] = (fabs(sm0[ib].s)>1e-6) ? (sm0[ib].se/sm0[ib].s) : 0.;
+    return mb->et[ib] = (fabs(sm0[ib].s) > 1e-6) ? (sm0[ib].se/sm0[ib].s) : 0.;
 
   /* using stat. from bins (js, jt) to form two estimates, left & right */
   mb_lrcol(mb, ib, js, jt, t1, &tb, s0, s1, sm0, 1);
@@ -998,7 +998,7 @@ static int mb_eh_recon(mb_t *mb, const char *fname)
       imax = cols;
     } else { /* only print the smallest non-zero region */
       for (ie = cols-1; ie >= 0; ie--) if (mb->eh_recon[ie] > 0) break;
-      if ((imax=ie+1) == 0) continue;
+      if ((imax = ie+1) == 0) continue;
       for (imin = 0; imin < imax; imin++) if (mb->eh_recon[imin] > 0) break;
     }
     /* normalize the histogram, and output */

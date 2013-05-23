@@ -48,7 +48,7 @@ def mkcodepretty(s):
     cs.use_rule_add = True
     cs.use_rule_paren2 = True
     cs.use_rule_nocppcmt = True
-    s, nchanges = cs.addspace0(s)
+    s, nchanges = cs.addspace(s)
   except ImportError: pass
   return s
 

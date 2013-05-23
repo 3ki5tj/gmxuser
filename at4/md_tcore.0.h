@@ -257,7 +257,7 @@ static int at_loaddata(at_t *at, int isctn)
     bbs_write(at->bbs, "bb_init.txt", 0);
   }
 #endif
-  fprintf(stderr,"successfully load previous data\n");
+  fprintf(stderr, "successfully load previous data\n");
   return 0;
 }
 
