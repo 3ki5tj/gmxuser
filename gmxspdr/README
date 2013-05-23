@@ -64,7 +64,6 @@ cspacer.py        the code beautifier called in ccutil.py
 
 * the v4.0 versions are independent of the v4.5 versions
 * the old script atspider.py is attached here for compatibility
-    (it, however, depends on cc.py and ccgmx.py)
 
 
 

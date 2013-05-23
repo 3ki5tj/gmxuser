@@ -8,6 +8,7 @@
     * savelines(fn, s)        save `s' to file `fn'
     * tmphastag(templ, tag)   if `templ' has `tag' or its variants
     * tmptagrep(templ, dic)   replace tags by the dictionary values
+    * getgmxver()             get GROMACS version, rootdir, ...
 '''
 
 import re, os, sys
@@ -165,4 +166,75 @@ def tmptagrep(templ, d0):
         if ln.find(key) >= 0:
           src[i] = ''.join(d[key]) + '\n'
   return ''.join(src).splitlines(True)
+
+
+
+def getgmxroot(root = None):
+  ''' determine the GROMACS root directory '''
+
+  if root and os.path.exists(root): # the user given one exists
+    return root
+  curdir = os.path.abspath( os.getcwd() )
+  while not (curdir == "/" or curdir.endswith(":\\")):
+    curdir = os.path.abspath( os.path.join(curdir, os.pardir) )
+    # there is a file `AUTHORS' under the root
+    if os.path.exists( os.path.join( curdir, "AUTHORS" ) ):
+      break
+  else:
+    print "cannot determine the GROMACS root from " + os.getcwd()
+    raise Exception
+  return curdir
+
+
+
+def getgmxver(gmxroot = None):
+  ''' get GROMACS version from CMakeLists.txt or configure.ac
+      works for GROMACS v4.0 and v4.5 '''
+  gmxroot = getgmxroot(gmxroot)
+
+  cfgac = os.path.join(gmxroot, "configure.ac")
+  cmake = os.path.join(gmxroot, "CMakeLists.txt")
+
+  if os.path.exists(cmake): # version 4.5 or later
+    for s in open(cmake):
+      # we look for a line that looks like
+      # set(PROJECT_VERSION "4.5.6-dev")
+      ln = s.strip()
+      if ln.startswith('set(PROJECT_VERSION'):
+        # we take the first 5 letters, i.e., 4.5.6
+        ln = ln.split()[1].strip().replace('"', '').replace(')', '')[:5]
+        # convert to int 40506
+        version = int( ln.replace('.', '0') )
+        break
+    else:
+      print "cannot determine version from %s" % cmake
+      raise Exception
+    isgmx4 = 0
+    sopenmm = "GMX_OPENMM"
+
+  elif os.path.exists(cfgac): # v4.0 or earlier
+    for s in open(cfgac):
+      if s.startswith("AC_INIT"):
+        # a typical string is like
+        #   AC_INIT(gromacs, 4.5.6-dev, [gmx-users@gromacs.org])
+        # so we take the second number in the parentheses ()
+        sver = s.split(",")[1].strip()
+        if sver.startswith("4.0"):
+          isgmx4 = 1
+        else:
+          print "bad gromacs version %s" % sver
+          raise Exception
+        version = int( sver[:5].replace(".", "0") )
+        break
+    else:
+      print "cannot determine version number from %s" % cfgac
+      raise Exception
+    # v4 uses USE_OPENMM
+    sopenmm = "USE_OPENMM"
+
+  else:  # there is neither CMakeLists.txt nor configure.ac
+    raise Exception
+
+  return version, gmxroot, isgmx4, sopenmm
+
 
