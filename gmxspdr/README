@@ -21,7 +21,8 @@ The aim of the project is to write a skeleton GROMACS code
   made in the official versions of the GROMACS.
   (however, both GROMACS v4.5 and v4.0 are quite stable now.)
 
-
+A few additional functions inserted to the template are ANSI C;
+  they do not depend on "zcom.h"
 
 
 Quick usage

@@ -247,18 +247,21 @@ def md_c_changedomd(c):
   c.mutfunc2("do_md", iscall = False)
 
   # add a call %PFX%_move()
-  offset = -1
-  if c.findblk("/\*.*Time for performance", ending = None) < 0:
-    raise Exception
-  i = c.begin + offset
-  bxtc = "bXTC"
+  #offset = -1
+  #if c.findblk("/\*.*Time for performance", ending = None) < 0:
+  #  raise Exception
+  #i = c.begin + offset
+  i = c.findline("bFirstStep = FALSE;", verbose = True)
+  if i < 0: raise Exception
   callmove = c.temprepl( r'''
-      /* update data, temperature and change at->scale */
-      if (0 != %PFX%_move(%OBJ%, enerd,
-           step, bFirstStep, bLastStep, bGStat,
-           bXTC, bNS, cr) ) {
-        exit(1);
-      }''', parse = True)
+    /* update data, temperature and change at->scale */
+    if (0 != %PFX%_move(%OBJ%, enerd,
+         step, bFirstStep, bLastStep, bGStat,
+         bXTC, bNS, cr) ) {
+      exit(1);
+    }
+
+''', parse = True)
   c.addln(i, callmove)
 
   # change the call do_force to %PFX%_doforce
@@ -271,7 +274,7 @@ def md_c_changedomd(c):
 
 def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read md.c, and remove junks '''
-  
+
   if not tmphastag(txtinp, "md.c"): return ""
   if not fn: fn = "md.c"
 

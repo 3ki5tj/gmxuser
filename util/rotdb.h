@@ -73,7 +73,7 @@ static int rotdb_add(rotdb_t *rot, unsigned *code, double w)
 
   /* search for existing code */
   for (i = 0; i < rot->n; i++) {
-    if (rotcode_cmp(rot->arr[i].code, code, rot->len) == 0) 
+    if (rotcode_cmp(rot->arr[i].code, code, rot->len) == 0)
       break;
   }
   if (i >= rot->n) { /* add a new rotamer */
@@ -116,7 +116,7 @@ static char *rotdb_decode(const unsigned *code, int len)
       ip++;
     }
     s[i] = (char)('0' + (icode % 3));
-    icode /= 3; 
+    icode /= 3;
   }
   return s;
 }
@@ -132,7 +132,7 @@ static int rotdb_write(const rotdb_t *rot, const char *fn)
     return -1;
   }
   fprintf(fp, "# %d %d ", rot->len, rot->n);
-  rotcode_print(fp, rot->ref.code, rot->len); 
+  rotcode_print(fp, rot->ref.code, rot->len);
   fprintf(fp, "%s\n", rotdb_decode(rot->ref.code, rot->len));
   for (i = 0; i < rot->n; i++) {
     rr = rot->arr + i;
@@ -151,7 +151,7 @@ static int rotdb_load(rotdb_t *rot, const char *fn)
   int len, n, i, m, j, next;
   unsigned code[RBMAX];
   double wt;
-  
+
   if ((fp = fopen(fn, "r")) == NULL) {
     fprintf(stderr, "cannot open %s\n", fn);
     return -1;
@@ -164,7 +164,7 @@ static int rotdb_load(rotdb_t *rot, const char *fn)
     return -1;
   }
   if (len != rot->len) {
-    fprintf(stderr, "fn %s, len %d vs. %d mismatch\n", 
+    fprintf(stderr, "fn %s, len %d vs. %d mismatch\n",
         fn, len, rot->len);
     fclose(fp);
     return -1;

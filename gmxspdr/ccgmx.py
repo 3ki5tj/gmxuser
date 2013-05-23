@@ -8,20 +8,13 @@ arranged in a class CCGMX, which extends CC
 
 import re, getopt, os, sys
 from cc import CC
-from ccutil import getgmxver
+from ccutil import getgmx
 
 
 class CCGMX(CC):
   ''' changes for GROMACS, it extends class CC (cc.py)
   each source code file (e.g., md.c, mdrun.c)
   should declare an instance via the constructor '''
-
-  # these are class level ``static'' variables
-  # so they can be set only once
-  version = -1
-  rootdir = None
-  isgmx4 = 0
-  sopenmm = "GMX_OPENMM"
 
   # use a dictionary to map function names
   # the mapped functions will further have a prefix
@@ -30,6 +23,8 @@ class CCGMX(CC):
     "do_md":              "domd",
     "do_force":           "doforce",
     "do_force_lowlevel":  "doforcelow",
+    "do_force_cutsVERLET":"doforcecv",
+    "do_force_cutsGROUP": "doforcecg",
     "calc_bonds":         "calcbonds",
   }
 
@@ -44,8 +39,8 @@ class CCGMX(CC):
     # call the base class constructor
     CC.__init__(c, fn, src, hdrs)
 
-    # compute the GROMACS version
-    c.getversion()
+    # make sure the GROMACS version is available
+    getgmx()
     if obj != None:
       c.obj = obj
       c.pfx = pfx
@@ -73,14 +68,16 @@ class CCGMX(CC):
     return s
 
 
-  def mutfunc(c, func, doall = True):
+  def mutfunc(c, func, doall = True, pfx = None):
     ''' replace the function name `func' by fmap[func] '''
+
+    if pfx == None: pfx = c.pfx
 
     # construct a new function name
     if func in c.fmap:
       nfunc = c.fmap[func]
     else:
-      nfunc = c.pfx + "_" + func
+      nfunc = pfx + "_" + func
 
     # (?<!\w) means that the preceeding character is not a word [a-zA-Z_]
     # (?!\w)  means that the following character is not a word
@@ -106,7 +103,7 @@ class CCGMX(CC):
     # (?<!\w) means that the preceeding character is not a word [a-zA-Z_]
     # (?!\w)  means that the following character is not a word
     if pat == None:
-      pat = "(?<!\w)" + "(" + func + ")" + "\s*\(\s*\w"
+      pat = "(?<!\w)" + "(" + func + ")" + "\s*\(\s*[\w&*]"
 
     if iscall: # function call, looks like: func(...);
       ending = ");"
@@ -120,8 +117,10 @@ class CCGMX(CC):
         newend = ", %s_t *%s)" % (c.pfx, c.obj)
 
     if c.findblk(pat, ending = ending, verbose = verbose) < 0:
-      print "cannot find [%s], ending [%s]" % (func, ending)
-      raise Exception
+      print "cc.mutfunc2: no [%s|%s], ending [%s], %s" % (
+          func, pat, ending, c.fn)
+      return
+      #raise Exception
 
     # add function prefix
     c.s[c.begin] = re.sub(func, c.fmap[func], c.s[c.begin])
@@ -186,7 +185,7 @@ class CCGMX(CC):
     c.rmline('etINT,{&nmultisim}', off1 = 2)
     c.rmline("gmx_repl_ex_t repl_ex=NULL;")
     c.substt(',bExchanged', '', 'bSumEkinhOld,bExchanged;')
-    if c.isgmx4:
+    if getgmx.isv4:
       c.rmline('int nmultisim=0;')
       c.rmline('int repl_ex_nst=0;')
       c.rmline('int repl_ex_seed=-1;')
@@ -201,7 +200,7 @@ class CCGMX(CC):
           ...
           #endif
     '''
-    c.rmdf(c.sopenmm)
+    c.rmdf(getgmx.sopenmm)
 
 
   def rmedv4(c):
@@ -275,7 +274,7 @@ class CCGMX(CC):
 
     c.rmline('"pullx", ffOPTWR', doall = True)
     c.rmline('"pullf", ffOPTWR', doall = True)
-    if c.isgmx4:
+    if getgmx.isv4:
       c.rmedv4()
       c.rmglasv4()
       c.rmetcv4()
@@ -288,26 +287,4 @@ class CCGMX(CC):
     if ii >= 0:
       c.s = c.s[:ii] + ["#ifdef %s\n" % tag,
         c.s[ii] + extra, "#endif\n", ] + c.s[ii+1 : ]
-
-
-  def getversion(c):
-    ''' same as the static function getgmxver()
-        but it avoids repeated calling that '''
-
-    # this function has been called before
-    # no need to repeat it for every instance
-    if CCGMX.version > 0: return
-
-    # we assign the class-level, instead of instance-level,
-    # variables, such that, when the next time an instance
-    # is create, the version needs not to be computed again
-    (CCGMX.version, CCGMX.rootdir, CCGMX.isgmx4, CCGMX.sopenmm
-        ) = getgmxver()
-
-    # verify the instance has the values
-    print "GROMACS version: %d; v4.0? %s; OPENMM string: %s" % (
-        c.version, bool(c.isgmx4), c.sopenmm)
-
-
-
 

@@ -8,7 +8,7 @@
     * savelines(fn, s)        save `s' to file `fn'
     * tmphastag(templ, tag)   if `templ' has `tag' or its variants
     * tmptagrep(templ, dic)   replace tags by the dictionary values
-    * getgmxver()             get GROMACS version, rootdir, ...
+    * getgmx()                get GROMACS version, rootdir, ...
 '''
 
 import re, os, sys
@@ -187,54 +187,61 @@ def getgmxroot(root = None):
 
 
 
-def getgmxver(gmxroot = None):
+def getgmx():
   ''' get GROMACS version from CMakeLists.txt or configure.ac
-      works for GROMACS v4.0 and v4.5 '''
-  gmxroot = getgmxroot(gmxroot)
+      should work for GROMACS v4.0+ '''
 
-  cfgac = os.path.join(gmxroot, "configure.ac")
-  cmake = os.path.join(gmxroot, "CMakeLists.txt")
+  # only do the computation for the first time
+  if not hasattr(getgmx, "root"):
+    getgmx.root = getgmxroot()
+    cfgac = os.path.join(getgmx.root, "configure.ac")
+    cmake = os.path.join(getgmx.root, "CMakeLists.txt")
 
-  if os.path.exists(cmake): # version 4.5 or later
-    for s in open(cmake):
-      # we look for a line that looks like
-      # set(PROJECT_VERSION "4.5.6-dev")
-      ln = s.strip()
-      if ln.startswith('set(PROJECT_VERSION'):
-        # we take the first 5 letters, i.e., 4.5.6
-        ln = ln.split()[1].strip().replace('"', '').replace(')', '')[:5]
-        # convert to int 40506
-        version = int( ln.replace('.', '0') )
-        break
-    else:
-      print "cannot determine version from %s" % cmake
+    if os.path.exists(cmake): # version 4.5 or later
+      for s in open(cmake):
+        # we look for a line that looks like
+        # set(PROJECT_VERSION "4.5.6-dev")
+        # here, `*?' in `(.*?)' means a non-greedy search
+        #       `(-dev)?' means `-dev' may or may not present
+        m = re.search(r'PROJECT_VERSION\s+"(.*?)(-dev)?"', s.strip())
+        if m:
+          # convert 4.5.6 to an integer 40506
+          sver = m.group(1).replace('.', '0')
+          if len(sver) < 5: sver += '0' * (5 - len(sver))
+          getgmx.ver = int(sver)
+          break
+      else:
+        print "cannot determine version from %s" % cmake
+        raise Exception
+      getgmx.isv4 = 0
+      getgmx.sopenmm = "GMX_OPENMM"
+
+    elif os.path.exists(cfgac): # v4.0 or earlier
+      for s in open(cfgac):
+        if s.startswith("AC_INIT"):
+          # a typical string is like
+          #   AC_INIT(gromacs, 4.5.6-dev, [gmx-users@gromacs.org])
+          # so we take the second number in the parentheses ()
+          sver = s.split(",")[1].strip()
+          if sver.startswith("4.0"):
+            getgmx.isv4 = 1
+          else:
+            print "bad gromacs version %s" % sver
+            raise Exception
+          getgmx.ver = int( sver[:5].replace(".", "0") )
+          break
+      else:
+        print "cannot determine version number from %s" % cfgac
+        raise Exception
+      # v4 uses USE_OPENMM
+      getgmx.sopenmm = "USE_OPENMM"
+
+    else:  # there is neither CMakeLists.txt nor configure.ac
       raise Exception
-    isgmx4 = 0
-    sopenmm = "GMX_OPENMM"
 
-  elif os.path.exists(cfgac): # v4.0 or earlier
-    for s in open(cfgac):
-      if s.startswith("AC_INIT"):
-        # a typical string is like
-        #   AC_INIT(gromacs, 4.5.6-dev, [gmx-users@gromacs.org])
-        # so we take the second number in the parentheses ()
-        sver = s.split(",")[1].strip()
-        if sver.startswith("4.0"):
-          isgmx4 = 1
-        else:
-          print "bad gromacs version %s" % sver
-          raise Exception
-        version = int( sver[:5].replace(".", "0") )
-        break
-    else:
-      print "cannot determine version number from %s" % cfgac
-      raise Exception
-    # v4 uses USE_OPENMM
-    sopenmm = "USE_OPENMM"
+    print "GROMACS version: %d; root %s, v4.0? %s; OPENMM string: %s" % (
+        getgmx.ver, getgmx.root, bool(getgmx.isv4), getgmx.sopenmm)
 
-  else:  # there is neither CMakeLists.txt nor configure.ac
-    raise Exception
-
-  return version, gmxroot, isgmx4, sopenmm
+  return getgmx.ver, getgmx.root, getgmx.isv4, getgmx.sopenmm
 
 

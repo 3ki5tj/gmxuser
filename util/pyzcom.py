@@ -6,7 +6,7 @@ import os,sys,shutil,getopt,re,subprocess
 
 def run_cmd(input, capture = 0, old_fashion = 0, verbose = 1):
   '''
-  run a system command 
+  run a system command
   and optionally capture standard output/error
   return tuple of return code, stdout, stderr
   the latter two are empty if capture is not set
@@ -14,24 +14,24 @@ def run_cmd(input, capture = 0, old_fashion = 0, verbose = 1):
   set old_fashion to 1
   if `verbose' is set, the command is echoed before executed
   '''
-  if capture: 
-    pipe=subprocess.PIPE 
-  else: 
+  if capture:
+    pipe=subprocess.PIPE
+  else:
     pipe=None
 
-  # detect if the input is a string or not 
+  # detect if the input is a string or not
   if type(input)==type(""):
     cmdstr=input
     cmd=cmdstr.split()
   else:
     cmd=input
     cmdstr=''.join([s+' '  for s in cmd])
-  
+
   if verbose >= 1:
     print "CMD:",cmdstr
     if verbose >= 2:
       raw_input("proceed?")
- 
+
   if old_fashion:
     retcode=os.system(cmdstr)
     oe=["", ""]  # no stdout or stderr
@@ -39,14 +39,14 @@ def run_cmd(input, capture = 0, old_fashion = 0, verbose = 1):
     p=subprocess.Popen(cmd, stdout=pipe, stderr=pipe)
     oe=p.communicate()
     retcode=p.returncode
-  
+
   return (retcode, oe[0], oe[1])
 
 
 def backup_file(file, ext = "", verbose = 1):
   '''
-  backup file to a nonexisting name, 
-  lead by the original file name `file' 
+  backup file to a nonexisting name,
+  lead by the original file name `file'
   with optional extension `ext', e.g., ".bak"
   if `verbose' is >= 2, confirmation is needed after the backup
   '''

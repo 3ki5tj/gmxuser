@@ -107,7 +107,7 @@ INLINE void gmxhmc_pop(gmxhmc_t *gh, FILE *fplog,
       bcast_state(cr, state, FALSE);
     }
   }
-  
+
   /* remember to call neighbor searching in the next step */
 }
 

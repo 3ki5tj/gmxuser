@@ -21,7 +21,7 @@ class CC:
       c.s = c.s.splitlines(True) # parse it to lines
 
     c.s = tab2sp( c.s ) # tabs to spaces
-    c.filename = fn
+    c.fn = fn
     c.begin = 0
     c.hdrs = hdrs
 
@@ -52,7 +52,7 @@ class CC:
     c.subs(find, repl, pat, doall, verbose)
 
 
-  def findln(c, pat):
+  def findln(c, pat, verbose = False):
     ''' find a single line that contains a pattern `pat' '''
     i = 0
     prog = re.compile(pat)
@@ -61,14 +61,15 @@ class CC:
         break
       i += 1
     else:
-      print "findln cannot find [%s]" % pat
+      if verbose:
+        print "cc.findln: no [%s], %s" % (pat, c.fn)
       return -1
     return i
 
 
-  def findline(c, pat):
+  def findline(c, pat, verbose = False):
     ''' same as `findln', but `pat' is a plain string, not a regular expression '''
-    return c.findln( str2re(pat) )
+    return c.findln( str2re(pat), verbose)
 
 
   def rmln(c, pat, doall = False, off0 = 0, off1 = 1, wcmt = False, verbose = False):
@@ -97,7 +98,8 @@ class CC:
         i += 1
     else:
       if (not doall) and verbose:
-        print "cannot find pattern [%s]" % pat
+        print "cc.rmln, no [%s], %s" % (pat, c.fn)
+        raise Exception
 
 
   def rmline(c, pat, doall = False, off0 = 0, off1 = 1, wcmt = False, verbose = False):
@@ -160,8 +162,8 @@ class CC:
           break
         i += 1
       else:
-        print "cannot find if starter from line %s (%s)\n%s" % (
-            start, c.filename, c.s[start])
+        print "cc.getblockend: no if starter from line %s (%s)\n%s" % (
+            start, c.fn, c.s[start])
         raise Exception
 
     # search the block ending
@@ -179,8 +181,8 @@ class CC:
         break
       i += 1
     else:
-      print "no ending `%s' from line %s (%s)" % (
-          ending, start, c.fname)
+      print "cc.getblockend: no ending `%s' from line %s (%s)" % (
+          ending, start, c.fn)
       raise Exception
 
     # include the blank lines after the ending into the block
@@ -206,7 +208,8 @@ class CC:
     prog = re.compile(pat)
     while i < len(c.s):
       if prog.search(c.s[i]): # pattern found
-        if verbose: print "pattern %s found in %s" % (pat, c.fname)
+        if verbose:
+          print "cc.rmblk: [%s] found in %s" % (pat, c.fn)
 
         # search a starting if
         start = i
@@ -216,8 +219,8 @@ class CC:
               break
             start -= 1
           else:
-            print "no starter [%s], pat [%s], line %d, file %s" % (
-                starter, pat, i, c.fname)
+            print "cc.rmblk: no starter [%s], pat [%s], line %d, file %s" % (
+                starter, pat, i, c.fn)
             #open("dump.txt", "w").write(''.join( c.s ))
             raise Exception
 
@@ -272,7 +275,7 @@ class CC:
         return c.begin
     else:
       if verbose:
-        print "cannot find pattern %s" % pat
+        print "cc.findblk: no [%s], %s" % (pat, c.fn)
       return -1
 
 
@@ -334,12 +337,12 @@ class CC:
             print "cannot handle #elif\n%s"  % c.s[i:j+1]
             raise Exception
         else:
-          print "cannot find #endif"
+          print "cc.rmdf: no #endif, %s" % c.fn
           raise Exception
 
         # now the `#if' block is [i : j+1]
         if verbose:
-          print "preprocessor in file %s (%d : %d)" % (c.fname, i, j+1)
+          print "cc.rmdf: preprocessor in %s (%d : %d)" % (c.fn, i, j+1)
           print ''.join( c.s[i : j+1] )
 
         if c.s[i].startswith(ifp):
@@ -369,7 +372,7 @@ class CC:
   def funcdef(c, funcpat, wsp = True):
     ''' return the entire function body (definition) '''
     if c.findblk(funcpat, ending = "}", wsp = wsp) < 0:
-      print "cannot find function pattern %s" % funcpat
+      print "cc.funcdef: no [%s], %s" % (funcpat, c.fn)
       raise Exception
     return c.s[c.begin : c.end+1]
 

@@ -13,62 +13,79 @@
 
 import re, getopt, os, sys
 from ccgmx import CCGMX
-from ccutil import tmphastag
+from ccutil import tmphastag, getgmx
 
 def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read bondfree.c and remove junks '''
 
   if not tmphastag(txtinp, "bondfree.c"): return ""
-  if not fn: fn = "../gmxlib/bondfree.c"
+  if not fn:
+    if getgmx()[0] < 40600:
+      fn = os.path.join(getgmx.root, "src", "gmxlib")
+    else:
+      fn = os.path.join(getgmx.root, "src", "gromacs", "gmxlib")
+    fn = os.path.join(fn, "bondfree.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unnecessary functions
+  c.rmdf("SIMD_BONDEDS")
   c.rmfunc("const int cmap_coeff_matrix[] = {")
-  c.rmfunc("int glatnr(int *global_atom_index,int i)")
-  c.rmfunc("static int pbc_rvec_sub(const t_pbc *pbc,const rvec xi,")
+  c.rmfunc("int glatnr(int *global_atom_index,")
+  c.rmfunc("static int pbc_rvec_sub(const t_pbc *pbc,")
   c.rmfunc("real morse_bonds(int nbonds,", starter = "/*")
   c.rmfunc("real cubic_bonds(int nbonds,")
   c.rmfunc("real FENE_bonds(int nbonds,")
-  c.rmfunc("real harmonic(real kA,real kB,real xA,real xB,real x,")
+  c.rmfunc("real harmonic(real kA,")
+  c.rmfunc("real anharm_polarize(int nbonds,")
   c.rmfunc("real bonds(int nbonds,")
   c.rmfunc("real restraint_bonds(int nbonds,")
   c.rmfunc("real polarize(int nbonds,")
   c.rmfunc("real water_pol(int nbonds,")
-  c.rmfunc("static real do_1_thole(const rvec xi,const rvec xj,")
+  c.rmfunc("static real do_1_thole(const rvec xi,")
   c.rmfunc("real thole_pol(int nbonds,")
-  c.rmfunc("real bond_angle(const rvec xi,const rvec xj,const rvec xk,")
+  c.rmfunc("real bond_angle(const rvec xi,")
   c.rmfunc("real angles(int nbonds,")
+  c.rmfunc("real linear_angles(int nbonds,")
   c.rmfunc("real urey_bradley(int nbonds,")
   c.rmfunc("real quartic_angles(int nbonds,")
-  c.rmfunc("real dih_angle(const rvec xi,const rvec xj,")
-  c.rmfunc("void do_dih_fup(int i,int j,int k,int l,real ddphi,")
-  c.rmfunc("real dopdihs(real cpA,real cpB,real phiA,real phiB,int mult,")
-  c.rmfunc("static real dopdihs_min(real cpA,real cpB,real phiA,real phiB,int mult,")
+  c.rmfunc("real dih_angle(const rvec xi,")
+  c.rmfunc("void do_dih_fup(int i,")
+  c.rmfunc("do_dih_fup_noshiftf(int i,", starter = "static void")
+  c.rmfunc("do_dih_fup_noshiftf_precalc(int i,", starter = "static")
+  c.rmfunc("real dopdihs(real cpA,")
+  c.rmfunc("dopdihs_noener(real cpA,", starter = "static void")
+  c.rmfunc("static real dopdihs_min(real cpA,")
+  c.rmfunc("dopdihs_mdphi(real cpA,", starter = "static void")
   c.rmfunc("real pdihs(int nbonds,")
+  c.rmfunc("void make_dp_periodic(real *dp)")
+  c.rmfunc("pdihs_noener(int nbonds,", starter = "static void")
   c.rmfunc("real idihs(int nbonds,")
   c.rmfunc("real posres(int nbonds,")
+  c.rmfunc("static void posres_dx(const rvec x,")
+  c.rmfunc("real fbposres(int nbonds,")
   c.rmfunc("static real low_angres(int nbonds,")
   c.rmfunc("real angres(int nbonds,")
   c.rmfunc("real angresz(int nbonds,")
+  c.rmfunc("real dihres(int nbonds,")
   c.rmfunc("real unimplemented(int nbonds,")
   c.rmfunc("real rbdihs(int nbonds,")
-  c.rmfunc("int cmap_setup_grid_index(int ip, int grid_spacing,")
+  c.rmfunc("int cmap_setup_grid_index(int ip,")
 
   # we need a prototype of cmap_dihs
   if c.findblock("real cmap_dihs(int nbonds", ending = ")", wsp = False) < 0:
-    print "cannot find %s in %s" % (cmap_dihs, c.fname)
+    print "no %s in %s" % (cmap_dihs, c.fn)
     raise Exception
   proto = c.s[c.begin : c.end + 1]
-  proto[-1] = proto[-1].rstrip() + ";\n"
+  proto[-1] = proto[-1].rstrip() + ";\n\n"
   c.rmfunc("real cmap_dihs(int nbonds,")
-  c.addln(c.begin, proto + [";\n", ])
+  c.addln(c.begin, proto)
 
-  c.rmfunc("real g96harmonic(real kA,real kB,real xA,real xB,",
+  c.rmfunc("real g96harmonic(real kA,",
       starter = "/*")
   c.rmfunc("real g96bonds(int nbonds,")
-  c.rmfunc("real g96bond_angle(const rvec xi,const rvec xj,const rvec xk,")
+  c.rmfunc("real g96bond_angle(const rvec xi,")
   c.rmfunc("real g96angles(int nbonds,")
   c.rmfunc("real cross_bond_bond(int nbonds,")
   c.rmfunc("real cross_bond_angle(int nbonds,")
@@ -76,7 +93,13 @@ def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.rmfunc("real tab_bonds(int nbonds,")
   c.rmfunc("real tab_angles(int nbonds,")
   c.rmfunc("real tab_dihs(int nbonds,")
+  c.rmfunc("calc_bonded_reduction_mask(const t_idef *idef,",
+      starter = "static")
+  c.rmfunc("void init_bonded_thread_force_reduction(t_forcerec")
+  c.rmfunc("static real calc_one_bond_foreign(FILE *fplog,")
   c.rmfunc("void calc_bonds_lambda(FILE *fplog,")
+
+  c.mutfunc("reduce_thread_forces", pfx = c.pfx + "cb")
 
   # change function name
   c.mutfunc2("calc_bonds", iscall = False)
@@ -87,7 +110,12 @@ def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' real force.c and remove junks '''
 
   if not tmphastag(txtinp, "force.c"): return ""
-  if not fn: fn = "../mdlib/force.c"
+  if not fn:
+    if getgmx()[0] < 40600:
+      fn = os.path.join(getgmx.root, "src", "mdlib")
+    else:
+      fn = os.path.join(getgmx.root, "src", "gromacs", "mdlib")
+    fn = os.path.join(fn, "force.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
@@ -112,6 +140,8 @@ def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.rmline("real dvdgb")
   c.substt("bDoEpot,", "")
 
+  c.mutfunc("reduce_thread_forces", pfx = c.pfx + "fl")
+
   # III. change function name
   c.mutfunc2("do_force_lowlevel", iscall = False)
 
@@ -127,7 +157,12 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read sim_util.c, and remove junks '''
 
   if not tmphastag(txtinp, "sim_util.c"): return ""
-  if not fn: fn = "../mdlib/sim_util.c"
+  if not fn:
+    if getgmx()[0] < 40600:
+      fn = os.path.join(getgmx.root, "src", "mdlib")
+    else:
+      fn = os.path.join(getgmx.root, "src", "gromacs", "mdlib")
+    fn = os.path.join(fn, "sim_util.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
   c.mdcom()
@@ -180,6 +215,11 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
   # change function names
   c.mutfunc2("do_force", iscall = False)
+  if getgmx()[0] >= 40600:
+    c.mutfunc2("do_force_cutsVERLET", iscall = False)
+    c.mutfunc2("do_force_cutsVERLET", iscall = True)
+    c.mutfunc2("do_force_cutsGROUP",  iscall = False)
+    c.mutfunc2("do_force_cutsGROUP",  iscall = True)
 
   # if we have to change force.c, then
   # change the call do_force_lowlevel()
@@ -202,7 +242,12 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read md.c, and remove junks '''
 
   if not tmphastag(txtinp, "md.c"): return ""
-  if not fn: fn = "md.c"
+  if not fn:
+    if getgmx()[0] < 40600:
+      fn = os.path.join(getgmx.root, "src", "kernel")
+    else:
+      fn = os.path.join(getgmx.root, "src", "programs", "mdrun")
+    fn = os.path.join(fn, "md.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
@@ -211,18 +256,20 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.mutfunc2("do_md", iscall = False)
 
   # add a call %PFX%_move()
-  offset = 1
-  if c.findblk("/\*.*END PREPARING EDR OUTPUT", ending = None) < 0:
-    raise Exception
-  i = c.begin + offset
-  bxtc = "mdof_flags & MDOF_XTC"
+  #offset = 1
+  #if c.findblk("/\*.*END PREPARING EDR OUTPUT", ending = None) < 0:
+  #  raise Exception
+  i = c.findline("bFirstStep = FALSE;", verbose = True)
+  if i < 0: raise Exception
   callmove = c.temprepl(r'''
         /* update %OBJ% */
         if (0 != %PFX%_move(%OBJ%, enerd,
              step, bFirstStep, bLastStep, bGStat,
              mdof_flags & MDOF_XTC, bNS, cr) ) {
           exit(1);
-        }''', parse = True)
+        }
+
+''', parse = True)
   c.addln(i, callmove)
 
   # if we also need to modify sim_util.c, then
@@ -242,8 +289,9 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.rmline("atom_id *grpindex=NULL;")
   c.substt(",gnx=0,ii;", ";", "gnx=0,ii;")
   c.substt("*scale_tot,pcoupl_mu,M,ebox;", "pcoupl_mu,M;", "matrix *scale_tot,pcoupl_mu,M,ebox;")
+  # temp0 has been fixed in v4.6
   c.substt("temp0,mu_aver=0,", "", "temp0,mu_aver=0,dvdl;")
-  c.rmline("temp0 = enerd->term[F_TEMP];", verbose = True)
+  c.rmline("temp0 = enerd->term[F_TEMP];")
   c.substt("fom,oldfom,", "", "fom,oldfom,veta_save")
   c.substt("boxcopy={{0}},", "")
   c.substt("*xcopy=NULL,*vcopy=NULL,", "")
@@ -257,7 +305,12 @@ def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read runner.c, and remove junks '''
 
   if not tmphastag(txtinp, "runner.c"): return ""
-  if not fn: fn = "runner.c"
+  if not fn:
+    if getgmx()[0] < 40600:
+      fn = os.path.join(getgmx.root, "src", "kernel")
+    else:
+      fn = os.path.join(getgmx.root, "src", "programs", "mdrun")
+    fn = os.path.join(fn, "runner.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
@@ -355,7 +408,7 @@ def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.rmline("if (do_md == do_md", off1 = 2)
 
   # remove unused variables
-  c.addifdef("t_commrec\s+\*cr_old=cr;", "GMX_THREADS")
+  c.addifdef("t_commrec\s+\*cr_old\s*=\s*cr;", "GMX_THREADS")
   c.addifdef("int\s+nthreads=1;", "GMX_THREADS")
   c.rmline("int list;")
   c.rmline("char *gro;")
@@ -396,7 +449,12 @@ def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   ''' read mdrun.c, and remove junks '''
 
   if not tmphastag(txtinp, "mdrun.c"): return ""
-  if not fn: fn = "mdrun.c"
+  if not fn:
+    if getgmx()[0] < 40600:
+      fn = os.path.join(getgmx.root, "src", "kernel")
+    else:
+      fn = os.path.join(getgmx.root, "src", "programs", "mdrun")
+    fn = os.path.join(fn, "mdrun.c")
 
   c = CCGMX(fn, None, obj, pfx, hdrs)
   c.mdcom()
