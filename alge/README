@@ -1,8 +1,0 @@
-Overview
---------
- *  abandon og.py to make it simpler
- *  gmxspdr.py is still used to grab GROMACS code
-
-Build
-
-  gmxspdr.py -i gmxalge.h
