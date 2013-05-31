@@ -21,7 +21,7 @@ To use it,
 import os,sys,shutil,getopt,re,filecmp
 
 # module attributes
-input     = ""
+fninp     = ""
 title     = ""
 rmlegacy  = True
 verbose   = 2
@@ -119,7 +119,7 @@ def tpl2ver(fn, ver, pattern = r"_t"):
 def genver(ver):
   """
   create a specific version, e.g. mb2.h, from the template mb_t.h
-    * input file is given by input
+    * input file is given by fninp
     * generate a special version, such that the program thinks
       `strver' is defined as `ver'
       limited to one level nesting
@@ -158,13 +158,13 @@ def genver(ver):
     return
 
   # create a name for automatic file name
-  output = tpl2ver(input, ver)
+  output = tpl2ver(fninp, ver)
   # open the output file ready to write
   output_tmp = output + ".tmp"
   fo = open(output_tmp, 'w')
 
   # read the input file line by line
-  for line in open(input, 'r'):
+  for line in open(fninp, 'r'):
     lin = line.lstrip()
     skip_line = False
 
@@ -363,7 +363,7 @@ def genver(ver):
   if (not os.path.exists(output)
       or not filecmp.cmp(output_tmp, output)):
     if verbose > 0 : print "-" * 64
-    print "Generating version %2d,  Input: %-12s  Output: %-12s" % (ver, input, output)
+    print "Generating version %2d,  Input: %-12s  Output: %-12s" % (ver, fninp, output)
     if verbose > 0 : print "-" * 64
     shutil.copy(output_tmp, output)
   os.remove(output_tmp)
@@ -385,7 +385,7 @@ def doargs():
   results saved to module attributes
   '''
 
-  global input, title, nver, rmlegacy, verbose
+  global fninp, title, nver, rmlegacy, verbose
 
   try:
     opts, args = getopt.gnu_getopt(sys.argv[1:], "hv:i:t:n:",
@@ -408,11 +408,11 @@ def doargs():
     elif o in ("-t", "--title"):
       title = a
     elif o in ("-i", "--input"):
-      input = a
+      fninp = a
     elif o in ("-h", "--help"):
       usage()
 
-  if (title == "" or input == ""):
+  if (title == "" or fninp == ""):
     print "missing title or input file"
     usage()
 
@@ -421,7 +421,7 @@ def main():
   doargs()
 
   for ver in range(1, nver + 1):
-    genver(input, "", title, ver, rmlegacy, verbose)
+    genver(fninp, "", title, ver, rmlegacy, verbose)
 
 if __name__ == "__main__":
   main()

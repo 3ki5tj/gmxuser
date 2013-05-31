@@ -107,7 +107,7 @@ static void rotdb_trim(rotdb_t *rot)
 static char *rotdb_decode(const unsigned *code, int len)
 {
   int i, ip = 0;
-  unsigned icode;
+  unsigned icode = 0;
   static char s[RBSIZ*RBMAX+1];
 
   for (i = 0; i < len; i++) {
@@ -156,8 +156,13 @@ static int rotdb_load(rotdb_t *rot, const char *fn)
     fprintf(stderr, "cannot open %s\n", fn);
     return -1;
   }
+
   /* the first line */
-  fgets(s, sizeof s, fp);
+  if (fgets(s, sizeof s, fp) == NULL) {
+    fprintf(stderr, "no first line %s\n", fn);
+    fclose(fp);
+    return -1;
+  }
   if (2 != sscanf(s+1, "%d%d", &len, &n)) {
     fprintf(stderr, "broken first line %s: %s\n", fn, s);
     fclose(fp);
@@ -170,7 +175,11 @@ static int rotdb_load(rotdb_t *rot, const char *fn)
     return -1;
   }
   for (i = 0; i < n; i++) {
-    fgets(s, sizeof s, fp);
+    if (fgets(s, sizeof s, fp) == NULL) {
+      fprintf(stderr, "fn %s corrupted on line %d\n", fn, i+1);
+      fclose(fp);
+      return -1;
+    }
     m = (len+RBSIZ-1)/RBSIZ;
     /* scan the code */
     p = s;

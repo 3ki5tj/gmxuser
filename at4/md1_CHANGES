@@ -1,0 +1,6 @@
+o tentatively migrate code to the 4.5 branch
+o we now use a simplified zcom.c, or zcom1.c to avoid unnecessary warnings
+o tentatively support the threads
+o create symbolic links zcom1.h, md1core.h to zcom1.c, and md1core.c.
+  only the former will be packed in the distribution.
+  Makefile.am can thus be simplified. 

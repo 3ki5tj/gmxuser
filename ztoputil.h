@@ -188,7 +188,7 @@ static int pro_loadgroups(protop_t *pro, const char *fn)
 {
   FILE *fp;
   char s[512], item[8], *p, *q, *pivot;
-  int ig, j, cid, x0, x, x1, next, na, ng;
+  int ig, j, cid, x0, x, x1, next, na = 0, ng;
 
   if ((fp = fopen(fn, "r")) == NULL) {
     fprintf(stderr, "cannot open %s\n", fn);
@@ -196,7 +196,11 @@ static int pro_loadgroups(protop_t *pro, const char *fn)
   }
 
   /* read the first line to get the number of atom groups */
-  fgets(s, sizeof s, fp);
+  if (fgets(s, sizeof s, fp) == NULL) {
+    fprintf(stderr, "no first line %s\n", fn);
+    fclose(fp);
+    return -1;
+  }
   if (s[0] != '#') {
     fprintf(stderr, "%s: missing first line #\n", fn);
     goto ERR;

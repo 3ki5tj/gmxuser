@@ -79,8 +79,6 @@ def savelines(fn, s):
 
 
 
-
-
 def mktagvars(tag):
   ''' make a list of variants of `tag '''
 
@@ -89,6 +87,7 @@ def mktagvars(tag):
   ls += [ d.replace('.', '_') for d in ls ]
   ls += [ d.replace('_', '.') for d in ls ]
   return list(set(ls)) # remove duplicates
+
 
 
 def tmphastag(templ, tag):
@@ -113,6 +112,7 @@ def addcasekeys(d):
   return newd
 
 
+
 def addvarkeys(d):
   ''' add keys with `_' replaced by `.' to the dictionary '''
   newd = {}
@@ -121,6 +121,7 @@ def addvarkeys(d):
     newd[key.replace('_', '.')] = d[key]
     newd[key.replace('.', '_')] = d[key]
   return newd
+
 
 
 def tmptagrep(templ, d0):

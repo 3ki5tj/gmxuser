@@ -53,7 +53,7 @@ typedef struct tag%pfx%_t %pfx%_t;
 
 /* the initialization function called in %pfx%_runner()
    before %pfx%_domd()/gmx_pmeonly() */
-static %pfx%_t *%pfx%_init(const char *fncfg, unsigned iscntn,
+static %pfx%_t *%pfx%_init(const char *fncfg, unsigned contnu,
     t_state *state, gmx_mtop_t *mtop, t_inputrec *ir, t_commrec *cr,
     int mode);
 
@@ -62,7 +62,7 @@ static void %pfx%_done(%pfx%_t *%obj%, t_commrec *cr);
 
 /* the function called after each MD step, in %pfx%_domd()
  * after replica_change(), only a PP-node calls this */
-static int %pfx%_move(%pfx%_t *%obj%, int *dirty, FILE *fplog,
+static int %pfx%_move(%pfx%_t *%obj%, FILE *fplog,
     gmx_large_int_t step, int bFirstStep, int bLastStep,
     int bGStat, int bXTC, int bNS, gmx_enerdata_t *enerd,
     t_state *state_global, t_state *state_local, rvec **f,
@@ -104,7 +104,7 @@ typedef struct tag%pfx%_t {
   int mode;
 } %pfx%_t;
 
-static %pfx%_t *%pfx%_init(const char *fncfg, unsigned iscntn,
+static %pfx%_t *%pfx%_init(const char *fncfg, unsigned contnu,
     t_state *state, gmx_mtop_t *mtop, t_inputrec *ir, t_commrec *cr,
     int mode)
 {
@@ -121,7 +121,7 @@ static void %pfx%_done(%pfx%_t *%obj%, t_commrec *cr)
   if (%obj% != NULL) free(%obj%);
 }
 
-static int %pfx%_move(%pfx%_t *%obj%, int *dirty, FILE *fplog,
+static int %pfx%_move(%pfx%_t *%obj%, FILE *fplog,
     gmx_large_int_t step, int bFirstStep, int bLastStep,
     int bGStat, int bXTC, int bNS, gmx_enerdata_t *enerd,
     t_state *state_global, t_state *state_local, rvec **f,
@@ -130,7 +130,6 @@ static int %pfx%_move(%pfx%_t *%obj%, int *dirty, FILE *fplog,
     gmx_vsite_t *vsite, gmx_shellfc_t shellfc, gmx_constr_t constr,
     t_nrnb *nrnb, gmx_wallcycle_t wcycle)
 {
-  *dirty = 0;
   return 0; /* not moved */
 }
 

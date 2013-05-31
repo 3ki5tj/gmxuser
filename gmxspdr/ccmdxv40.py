@@ -250,7 +250,7 @@ def md_c_changedomd(c):
   if i < 0: raise Exception
   callmove = c.temprepl(r'''
     /* update %obj% at the end of an MD step */
-    %pfx%_move(%obj%, NULL, fplog, step,
+    %pfx%_move(%obj%, fplog, step,
          bFirstStep, bLastStep, bGStat, bXTC, bNS, enerd,
          state_global, state, &f, top_global, top,
          ir, cr, mdatoms, fr, vsite, shellfc, constr,

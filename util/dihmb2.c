@@ -158,7 +158,11 @@ static int loadbras(const char *fn)
   xnew(bras, nbras+1);
   rewind(fp);
   for (i = 0; i < nbras; i++) {
-    fgets(buf, sizeof buf, fp);
+    if (fgets(buf, sizeof buf, fp) == NULL) {
+      fprintf(stderr, "%s: error of %dth brackets\n", fn, i+1);
+      fclose(fp);
+      return -1;
+    }
     strip(buf);
     die_if (2 != sscanf(buf, "%lf%lf", &(bras[i][0]), &(bras[i][1])),
       "cannot scan bracket from line [%s]\n", buf);
@@ -399,7 +403,7 @@ int run(void)
   gmx_mtop_t *mtop;
   int i, ndata, nat;
   char fxtc[FILENAME_MAX];
-  char *ftop, *fidx;
+  char *ftop, *fidx = NULL;
   matrix box;
   rvec *xref = NULL;
   zedata_t *ze = NULL;

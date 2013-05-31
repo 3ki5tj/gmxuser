@@ -13,7 +13,10 @@
 #define ZCOM_ENDN /* binary i/o */
 #define ZCOM_SS
 #define ZCOM_DISTR
+#define ZCOM_RC /* for distr2d */
 #include "zcom2.h"
+
+#include "distr2d.h"
 
 #define BB_ATOMS 5
 /* five atoms: i, j, k, l, h */

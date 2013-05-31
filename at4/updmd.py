@@ -98,12 +98,12 @@ def call_og(file):
   proto = pt[0] + ".0" + pt[1]
   if os.path.exists(proto):
     #print "run object generator..."
-    ret = os.system("og.py %s" % file)
+    ret = os.system("python og.py %s" % file)
     if ret != 0:
       print "error occurs in og"
 
-def apply_genver(input, title):
-  gv.input    = input
+def apply_genver(fninp, title):
+  gv.fninp    = fninp
   gv.title    = title
   gv.verbose  = verbose
   for ver in range(1, nver + 1):

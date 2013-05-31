@@ -257,13 +257,13 @@ int run(void)
   double bref = 1.0/(BOLTZ*300);
   rvec *xref = NULL; /* coordinates of .tpr */
   matrix box;
-  zedata_t *ze;
-  trj_t *trj;
+  zedata_t *ze = NULL;
+  trj_t *trj = NULL;
 
   protop_t *pro;
   hist_t *hs_ct, *hs_rdf;
   den_t den[1];
-  FILE *fplog;
+  FILE *fplog = NULL;
 
   /* read topology */
   die_if ((ftop = nfexists(fntop, 7)) == NULL, "no topology file %s\n", fntop);

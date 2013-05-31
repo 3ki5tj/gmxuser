@@ -368,7 +368,7 @@ static void at_output(at_t *at, llong_t step,
 int at_move(at_t *at, llong_t step, int bfirst, int blast, int btr)
 {
   double invw = 1.0, T1 = 0., T2 = 0., Eav = 0., ndlnw;
-  int ib, rep;
+  int ib = 0, rep;
 #if AT_VER == 2
   double varr[AT_VTOT + 1] = {0.0};
   varr[0] = at->H0;

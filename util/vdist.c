@@ -396,7 +396,7 @@ static int dotrj(protop_t *pro,
 int run(void)
 {
   gmx_mtop_t *mtop;
-  char *ftop, *fidx;
+  char *ftop, *fidx = NULL;
   int i, ndata, nat;
   double dt;
   double *vpref, *vmref;
@@ -404,14 +404,14 @@ int run(void)
   matrix box;
   rvec *xref = NULL;
   double bref = 1.0/(BOLTZ*Tref);
-  zedata_t *ze;
-  trj_t *trj;
+  zedata_t *ze = NULL;
+  trj_t *trj = NULL;
   protop_t *pro;
   rvec *rods;
   int nvd;
   hist_t *hs_vd = NULL, *hs_pd = NULL, *hs_pg = NULL;
   hist2_t *hs2_vd = NULL;
-  FILE *fplog;
+  FILE *fplog = NULL;
 
   /* read topology */
   die_if ((ftop = nfexists(fntop, 7)) == NULL, "no topology file %s\n", fntop);

@@ -66,7 +66,7 @@ class CCGMX(CC):
       s = s.replace( key, d[key] )
       s = s.replace( key.upper(), d[key] )
       s = s.replace( key.lower(), d[key] )
-    
+
     if parse: # parse the string into lines with '\n'
       s = s.splitlines(True)
     return s

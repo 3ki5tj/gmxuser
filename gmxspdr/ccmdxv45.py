@@ -255,7 +255,7 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   if i < 0: raise Exception
   callmove = c.temprepl(r'''
         /* update %obj% at the end of an MD step */
-        ''' + varmv + ''' = %pfx%_move(%obj%, NULL, fplog, step,
+        ''' + varmv + ''' = %pfx%_move(%obj%, fplog, step,
              bFirstStep, bLastStep, bGStat,
              mdof_flags & MDOF_XTC, bNS, enerd,
              state_global, state, &f, top_global, top,
@@ -436,17 +436,17 @@ def mdrun_c_addopt(c):
       c.s[c.end - 1] = c.s[c.end - 1].rstrip() + ",\n"
     # add the new option at the end of `pa'
     c.addln(c.end,
-        [ 
+        [
           '    { "-mode", FALSE, etINT, {&%s},\n' % c.varmode,
           '      "mode of %s functions" }\n' % c.pfx,
         ] )
-    
+
     static = ""
     if c.s[c.begin].strip().startswith("static"):
       static = "static "
 
     # add a variable
-    c.addln(c.begin, '  %sint %s = 0;\n' 
+    c.addln(c.begin, '  %sint %s = 0;\n'
                      % (static, c.varmode) )
 
 

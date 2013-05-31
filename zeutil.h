@@ -142,6 +142,7 @@ static double ze_geteav(zedata_t *ze, double bet)
   k = (ze->eav[ib+1] - ze->eav[ib])/ze->bdel;
   return ze->eav[ib] + k*db;
 }
+
 /* free ze */
 void ze_free(zedata_t *ze)
 {
