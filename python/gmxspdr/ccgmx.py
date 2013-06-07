@@ -7,8 +7,8 @@ arranged in a class CCGMX, which extends CC
 '''
 
 import re, getopt, os, sys
+import gmxcom
 from cc import CC
-from ccutil import getgmx
 
 
 class CCGMX(CC):
@@ -39,8 +39,6 @@ class CCGMX(CC):
     # call the base class constructor
     CC.__init__(c, fn, src, hdrs)
 
-    # make sure the GROMACS version is available
-    getgmx()
     if obj != None:
       c.obj = obj
       c.pfx = pfx
@@ -189,7 +187,7 @@ class CCGMX(CC):
     c.rmline('etINT,{&nmultisim}', off1 = 2)
     c.rmline("gmx_repl_ex_t repl_ex=NULL;")
     c.substt(',bExchanged', '', 'bSumEkinhOld,bExchanged;')
-    if getgmx.isv4:
+    if gmxcom.isver4():
       c.rmline('int nmultisim=0;')
       c.rmline('int repl_ex_nst=0;')
       c.rmline('int repl_ex_seed=-1;')
@@ -204,7 +202,7 @@ class CCGMX(CC):
           ...
           #endif
     '''
-    c.rmdf(getgmx.sopenmm)
+    c.rmdf(gmxcom.sopenmm())
 
 
   def rmedv4(c):
@@ -278,7 +276,7 @@ class CCGMX(CC):
 
     c.rmline('"pullx", ffOPTWR', doall = True)
     c.rmline('"pullf", ffOPTWR', doall = True)
-    if getgmx.isv4:
+    if gmxcom.isver4():
       c.rmedv4()
       c.rmglasv4()
       c.rmetcv4()

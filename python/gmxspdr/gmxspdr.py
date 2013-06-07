@@ -9,9 +9,8 @@ details can be found in the function usage(), or run the script with `-h'
 
 import re, sys, os, glob, getopt
 from ccgmx import CCGMX
-from ccutil import savelines, tmptagrep, getgmx
-import ccmdxv40
-import ccmdxv45
+from ccutil import savelines, tmptagrep
+import gmxcom
 
 objname = None  # nick name of the object variable
 prefix = None   # function prefix, "gmx" + `objname' by default
@@ -244,13 +243,13 @@ def main():
   pfx = prefix
   hdrs = {}
 
-  gmxver = getgmx()[0]
+  gmxver = gmxcom.version()
 
   # create an empty CCGMX object to assign prefix
   # better mechanism?
   decl = CCGMX(None, None, obj, pfx, hdrs)
   slargeint = ""
-  if getgmx.ver < 40100:
+  if gmxver < 40100:
     slargeint = "typedef long int gmx_large_int_t;"
   # supply two additional keys
   d = { "%input_file%": str(fninp),
@@ -263,26 +262,26 @@ def main():
   decl.shdr()
 
   if gmxver < 40010:
-    cm = ccmdxv40
-  elif gmxver < 40510:
-    cm = ccmdxv45
+    import ccmdxv40 as ccmdx
   else:
-    cm = ccmdxv45
-    print "Warning: this version", gmxver, "of GROMACS is unsupported"
-    #raise Exception
+    import ccmdx
+    if gmxver >= 40600:
+      print "Warning: this version", gmxver, "of GROMACS is unsupported"
+      #raise Exception
+
 
   # change %obj%, %pfx%, etc., in the input template file
   global txtinp
   txtinp = decl.temprepl(txtinp, True, d);
 
   # set filenames to `None' to be safe
-  bondfree_c = cm.get_bondfree_c(txtinp, obj, pfx, None, hdrs)
-  force_c = cm.get_force_c(txtinp, obj, pfx, None, hdrs)
-  simutil_c = cm.get_simutil_c(txtinp, obj, pfx, None, hdrs)
+  bondfree_c = ccmdx.get_bondfree_c(txtinp, obj, pfx, hdrs)
+  force_c = ccmdx.get_force_c(txtinp, obj, pfx, hdrs)
+  simutil_c = ccmdx.get_simutil_c(txtinp, obj, pfx, hdrs)
 
-  md_c = cm.get_md_c(txtinp, obj, pfx, None, hdrs)
-  runner_c = cm.get_runner_c(txtinp,obj, pfx, None, hdrs)
-  mdrun_c = cm.get_mdrun_c(txtinp, obj, pfx, None, hdrs)
+  md_c = ccmdx.get_md_c(txtinp, obj, pfx, hdrs)
+  runner_c = ccmdx.get_runner_c(txtinp,obj, pfx, hdrs)
+  mdrun_c = ccmdx.get_mdrun_c(txtinp, obj, pfx, hdrs)
 
   # replace user-supplied tags
   dic = {

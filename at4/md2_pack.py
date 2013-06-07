@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import sys,os,shlex,subprocess,shutil
-from pyzcom import run_cmd
+from zcom import runcmd
 
 target = "../../../md2.tar.gz"
 filelist = ['md1_README', 'md2_README',
@@ -58,12 +58,12 @@ if not devver:
   if raw_input().startswith("n"): exit(1);
   create_phony(['Makefile.am', 'Makefile.in'])
 
-run_cmd(['tar', 'cvphzf', target]+prune_filelist(filelist))
+runcmd(['tar', 'cvphzf', target]+prune_filelist(filelist))
 
 if not devver:
   restore_orig(['Makefile.am', 'Makefile.in'])
 
 print "%s size %d" %(target, len(open(target).read()))
 
-run_cmd(['gnome-open',target])
+runcmd(['gnome-open',target])
 

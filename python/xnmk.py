@@ -8,9 +8,13 @@ verbose = 0
 nsteps_warmup = 10000
 nsteps_enemin = 10000
 
+
+
 def run(prjname, id, tm):
   srcdir, gro, top, mdp = extract_frame(prjname, id, tm)
   run_simul(prjname, srcdir, gro, top, mdp)
+
+
 
 def extract_frame(prjname, id, tm0):
   ''' extract a pdb file from id and tm0 '''
@@ -36,6 +40,8 @@ def extract_frame(prjname, id, tm0):
   print "file %s, %s, %s, %s" % (curdir, gro, top, mdp)
   return curdir, gro, "topol.top", mdp
 
+
+
 def get_trrdt(mdp):
   ''' determine trr interval '''
   dt = 2e-3  # a guess
@@ -50,6 +56,8 @@ def get_trrdt(mdp):
       dt = float( s[i+1:].strip() )
   print "%s: dt = %g, nstxout = %d, trrdt = %g" % (mdp, dt, xout, dt*xout)
   return dt*xout
+
+
 
 def run_simul(prjname, srcdir, gro, top, mdp):
   ''' given a .gro file, prepare system for room temperature '''
@@ -112,6 +120,8 @@ def run_simul(prjname, srcdir, gro, top, mdp):
   src = mkpbs(prjroot, prjname)
   open("foo.pbs", "w").write(src)
 
+
+
 def mkprjdir(prjname, srcdir):
   ''' build a new directory for prjname '''
   s = srcdir
@@ -139,6 +149,8 @@ def mkprjdir(prjname, srcdir):
   os.chdir(dirprep)
   return dir, dirprep, root
 
+
+
 def mkmdp(model, nsteps, temp = "300"):
   src = ""
   temp = str(temp)
@@ -156,6 +168,8 @@ def mkmdp(model, nsteps, temp = "300"):
       s = "gen_seed = %d" % random.randint(0, 100000000)
     src += s + '\n'
   return src
+
+
 
 def runcmd(input, capture = 0, system = 0, verbose = 1):
   ''' run a system command and optionally capture standard output/error
@@ -189,11 +203,15 @@ def runcmd(input, capture = 0, system = 0, verbose = 1):
     retcode=p.returncode
   return (retcode, oe[0], oe[1])
 
+
+
 def die_if(cond, message = ""):
   ''' die if `cond' is true '''
   if cond:
     print "fatal error:", message
     raise Exception
+
+
 
 def usage():
   ''' print usage and die '''
@@ -204,6 +222,8 @@ def usage():
   -v: verbose
   '''
   exit(1)
+
+
 
 def doargs():
   ''' handle input arguments '''

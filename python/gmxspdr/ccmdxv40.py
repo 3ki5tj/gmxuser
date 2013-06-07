@@ -4,13 +4,14 @@
 
 
 import re, getopt, os, sys
+import gmxcom
 from ccgmx import CCGMX
 from ccutil import tmphastag
 
-def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_bondfree_c(txtinp, obj, pfx, hdrs = {}):
   if not tmphastag(txtinp, "bondfree.c"): return ""
-  fn = "../gmxlib/bondfree.c"
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+
+  c = CCGMX(gmxcom.getf("bondfree.c"), None, obj, pfx, hdrs)
   c.mdcom()
 
   c.rmfunc("int glatnr(int *global_atom_index,int i)")
@@ -60,11 +61,10 @@ def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   return c.s
 
 
-def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_force_c(txtinp, obj, pfx, hdrs = {}):
   if not tmphastag(txtinp, "force.c"): return ""
-  if not fn: fn = "../mdlib/force.c"
 
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c = CCGMX(gmxcom.getf("force.c"), None, obj, pfx, hdrs)
   c.mdcom()
 
   c.rmfunc("t_forcerec *mk_forcerec(void)")
@@ -99,11 +99,10 @@ def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   return c.s
 
 
-def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_simutil_c(txtinp, obj, pfx, hdrs = {}):
   if not tmphastag(txtinp, "sim_util.c"): return ""
-  if not fn: fn = "../mdlib/sim_util.c"
 
-  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
+  c = CCGMX(gmxcom.getf("sim_util.c"), None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   c.rmline("#define difftime(end,start)")
@@ -265,13 +264,12 @@ def md_c_changedomd(c):
   c.rmline("real timestep=0;")
 
 
-def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_md_c(txtinp, obj, pfx, hdrs = {}):
   ''' read md.c, and remove junks '''
 
   if not tmphastag(txtinp, "md.c"): return ""
-  if not fn: fn = "md.c"
 
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c = CCGMX(gmxcom.getf("md.c"), None, obj, pfx, hdrs)
   c.mdcom()
   md_c_changemdrunner(c)
   md_c_changedomd(c)
@@ -285,19 +283,18 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   return c.s
 
 
-def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_runner_c(txtinp, obj, pfx, hdrs = {}):
   # v4.0 doesn't have a functional runner.c
   # the functions are included in md.c
   return ""
 
 
-def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_mdrun_c(txtinp, obj, pfx, hdrs = {}):
   ''' read mdrun.c, and remove junks '''
 
   if not tmphastag(txtinp, "mdrun.c"): return ""
-  if not fn: fn = "mdrun.c"
 
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c = CCGMX(gmxcom.getf("mdrun.c"), None, obj, pfx, hdrs)
   c.mdcom()
 
   # add a parameter `mode' to mdrunner() call
@@ -305,7 +302,7 @@ def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   c.mutfunc("mdrunner")
 
   # get the static qualifier
-  if c.findblk("static const char \*desc", ending = None) >= 0: pfx = "static "
+  if c.findblock("static const char *desc", ending = None) >= 0: pfx = "static "
   else: pfx = ""
   c.rmblk("char\s*\*desc", starter = None, ending = "};")
   # simplify the desc

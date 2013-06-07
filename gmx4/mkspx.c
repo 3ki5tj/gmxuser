@@ -1,7 +1,7 @@
 /*
   build an extended chain (beta-strand) conformation
 
-  Copyright (C) 2010-2012  Cheng Zhang
+  Copyright (C) 2010-2013  Cheng Zhang
 
   This program is free software; you can redistribute it and/or
   modify it under the terms of the GNU General Public License
@@ -36,7 +36,7 @@ const char *fnout = "out.pdb";
 const char *fnin  = "in.seq";
 static void help(void);
 
-/* standand bond length in angstrom */
+/* standand bond lengths in angstroms */
 #define B_CAC     1.53
 #define B_CN_PEP  1.33
 #define B_NCA     1.46
@@ -134,7 +134,7 @@ static int name2itype(const char *name)
 {
   const char *p = name;
 
-  // be careful with 4-letter residues
+  /* be careful with 4-letter residues */
   if (strcmp(name, "CYS2") == 0) {
     return CYS;
   } else if (name[3] != '\0' && (name[0]=='C'||name[0]=='N'))
@@ -201,14 +201,14 @@ static void atomput(int atomid, char *atomname, char*resname, int res_id,
 static void gentrp(double r[8][3], double g[3], double x[3], double y[3])
 {
   double v[3];
-  lincomb(r[0], g,    lincomb2(v, x, y, c36, s36), B_CC_RING); // CD1
-  lincomb(r[1], g,    lincomb2(v, x, y, -c36, s36), B_CC_RING); // CD2
-  lincomb(r[2], r[0], lincomb2(v, x, y, -c72, s72), B_CC_RING); // NE1
-  lincomb(r[3], r[1], lincomb2(v, x, y, c72, s72), B_CC_RING); // CE2
-  lincomb(r[4], r[1], lincomb2(v, x, y, -c12, -s12), B_CC_RING); // CE3
-  lincomb(r[5], r[3], lincomb2(v, x, y, -c72, s72), B_CC_RING); // CZ2
-  lincomb(r[7], r[5], lincomb2(v, x, y, -c12, -s12), B_CC_RING); // CH2
-  lincomb(r[6], r[7], lincomb2(v, x, y, -c72, -s72), B_CC_RING); // CZ3
+  lincomb(r[0], g,    lincomb2(v, x, y,  c36,  s36), B_CC_RING); /* CD1 */
+  lincomb(r[1], g,    lincomb2(v, x, y, -c36,  s36), B_CC_RING); /* CD2 */
+  lincomb(r[2], r[0], lincomb2(v, x, y, -c72,  s72), B_CC_RING); /* NE1 */
+  lincomb(r[3], r[1], lincomb2(v, x, y,  c72,  s72), B_CC_RING); /* CE2 */
+  lincomb(r[4], r[1], lincomb2(v, x, y, -c12, -s12), B_CC_RING); /* CE3 */
+  lincomb(r[5], r[3], lincomb2(v, x, y, -c72,  s72), B_CC_RING); /* CZ2 */
+  lincomb(r[7], r[5], lincomb2(v, x, y, -c12, -s12), B_CC_RING); /* CH2 */
+  lincomb(r[6], r[7], lincomb2(v, x, y, -c72, -s72), B_CC_RING); /* CZ3 */
 }
 
 /* remove decorations around the residue */
@@ -378,7 +378,7 @@ void help(void)
   "  G1 opposes CO; G2 opposes N; G3 is the remaining direction.\n"
   "  The output is in AMBER format, use amberize -u to convert it to a normal PDB.\n";
 
-  fprintf(stderr, "%s  Copyright (C) 2010  Cheng Zhang\n"
+  fprintf(stderr, "%s  Copyright (C) 2010-2013 Cheng Zhang\n"
   "This program comes with ABSOLUTELY NO WARRANTY.  "
   "It is free software, and you are welcome to redistribute "
   "it under certain conditions.\n\n", prog);
@@ -429,6 +429,7 @@ static int doargs(int argc, char *argv[])
   }
   return 0;
 }
+
 
 
 int main(int argc, char *argv[])

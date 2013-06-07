@@ -1,0 +1,20 @@
+Python programs for GROMACS
+============================
+
+Files and subdirectories
+-------------------------
+zcom.py         Generic common functions
+gmxcom.py       common functions for GROMACS
+simpdb.py       prepare an MD simulation from a PDB file
+---
+gmxspdr         GMXSpider program
+
+
+Old/deprecated programs
+~~~~~~~~~~~~~~~~~~~~~~~~
+doav.py
+extpro.py
+mkbra.py
+trim.py
+xnmk.py
+

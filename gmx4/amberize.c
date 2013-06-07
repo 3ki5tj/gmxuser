@@ -32,6 +32,7 @@
    It can also reverse the AMBER names in a pdb to normal ones by -R (to de-amberize)
  */
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 

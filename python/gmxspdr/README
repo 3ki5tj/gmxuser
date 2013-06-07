@@ -47,7 +47,7 @@ Files
 --------------
 gmxspdr.py
  |
- +--ccmdxv45.py   specific modifications to various
+ +--ccmdx.py      specific modifications to various
      |            GROMACS source files
      |
      +--ccgmx.py  common code changes to GROMACS
@@ -59,9 +59,12 @@ gmxspdr.py
 
 ccutil.py         standalone helper functions
 
+gmxcom.py         common GROMACS routines
 cspacer.py        the code beautifiers called in ccutil.py
 cindent.py        they can be missing however
 
+pyembed.py        to make a self-contained version of gmxspdr.py
+                  currently the result works, but has some defects
 
 * the v4.0 versions are independent of the v4.5 versions
 * the old script atspider.py is attached here for compatibility

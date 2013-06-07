@@ -101,7 +101,7 @@ typedef struct {
                            $rbdef: 0.0; */
   double   lgv_tot;     /* total number of attempts of using langevin equation;
                            $def: 0.0;  $io:b; $binprev: @lgv_rate; $clr;
-                           $rbvalid: (@lgv_rej=@lgv_tot*lgv_rate) >= 0.0; */
+                           $rbvalid: (@lgv_rej = @lgv_tot*lgv_rate) >= 0.0; */
 
   int      regl;        /* average within a bin first;
                            $key: @<regularize; $def: 2; */

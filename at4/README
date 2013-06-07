@@ -10,7 +10,7 @@ md1, md2:   for gromacs4 and gromacs45, branch at4
 
 mdgo:       Go model, not working, gromacs45 at4/goh
 
-mu:         gromacs4, not working, branch mu 
+mu:         gromacs4, not working, branch mu
 
 
 
@@ -24,7 +24,7 @@ to the source code tree
 
 md1/md2
 ~~~~~~~
-               og.py            genver.py 
+               og.py            genver.py
 mb_t.0.h      ------->  mb_t.h ----------->   mb1.h
                                               mb2.h
 
@@ -42,7 +42,7 @@ md_tcore.0.h  ------->  md_tcore.h  --------->  md1core.h
 md_tutil.h  ----------->  md1util.h (4.0) -----------> md1util.h (4.5)
                           md2util.h (4.0)              md2util.h (4.5)
 
-         genver.py               
+         genver.py
 md_t.c  ----------->  md1.c (4.0)
                       md2.c (4.0)
 

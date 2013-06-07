@@ -12,18 +12,16 @@
 '''
 
 import re, getopt, os, sys
+import gmxcom
 from ccgmx import CCGMX
-from ccutil import tmphastag, getgmx, pathswitch
+from ccutil import tmphastag
 
-
-
-def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_bondfree_c(txtinp, obj, pfx, hdrs = {}):
   ''' read bondfree.c and remove junks '''
 
   if not tmphastag(txtinp, "bondfree.c"): return ""
-  if not fn: fn = pathswitch("gmxlib/bondfree.c", "gromacs/gmxlib/bondfree.c")
 
-  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
+  c = CCGMX(gmxcom.getf("bondfree.c"), None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unnecessary functions
@@ -103,13 +101,12 @@ def get_bondfree_c(txtinp, obj, pfx, fn = None, hdrs = {}):
   return c.s
 
 
-def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_force_c(txtinp, obj, pfx, hdrs = {}):
   ''' real force.c and remove junks '''
 
   if not tmphastag(txtinp, "force.c"): return ""
-  if not fn: fn = pathswitch("mdlib/force.c", "gromacs/mdlib/force.c")
 
-  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
+  c = CCGMX(gmxcom.getf("force.c"), None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unnecessary functions
@@ -145,13 +142,12 @@ def get_force_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
 
 
-def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_simutil_c(txtinp, obj, pfx, hdrs = {}):
   ''' read sim_util.c, and remove junks '''
 
   if not tmphastag(txtinp, "sim_util.c"): return ""
-  if not fn: fn = pathswitch("mdlib/sim_util.c", "gromacs/mdlib/sim_util.c")
 
-  c = CCGMX(fn, None, obj, pfx, hdrs = hdrs)
+  c = CCGMX(gmxcom.getf("sim_util.c"), None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
   # I. remove unecessary functions
@@ -202,7 +198,7 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
   # change function names
   c.mutfunc2("do_force", iscall = False)
-  if getgmx.ver >= 40600:
+  if gmxcom.version() >= 40600:
     c.mutfunc2("do_force_cutsVERLET", iscall = False)
     c.mutfunc2("do_force_cutsVERLET", iscall = True)
     c.mutfunc2("do_force_cutsGROUP",  iscall = False)
@@ -225,13 +221,12 @@ def get_simutil_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
 
 
-def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_md_c(txtinp, obj, pfx, hdrs = {}):
   ''' modify md.c '''
 
   if not tmphastag(txtinp, "md.c"): return ""
-  if not fn: fn = pathswitch("kernel/md.c", "programs/mdrun/md.c")
 
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c = CCGMX(gmxcom.getf("md.c"), None, obj, pfx, hdrs)
   c.mdcom()
 
   # change the definition of do_md()
@@ -298,13 +293,12 @@ def get_md_c(txtinp, obj, pfx, fn = None, hdrs = {}):
 
 
 
-def get_runner_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_runner_c(txtinp, obj, pfx, hdrs = {}):
   ''' modify runner.c '''
 
   if not tmphastag(txtinp, "runner.c"): return ""
-  if not fn: fn = pathswitch("kernel/runner.c", "programs/mdrun/runner.c")
 
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c = CCGMX(gmxcom.getf("runner.c"), None, obj, pfx, hdrs)
   c.mdcom()
 
   # add `varmode' to the declaration of mdrunner_arglist, cf. v4.5, runner.c, line 113
@@ -451,13 +445,12 @@ def mdrun_c_addopt(c):
 
 
 
-def get_mdrun_c(txtinp, obj, pfx, fn = None, hdrs = {}):
+def get_mdrun_c(txtinp, obj, pfx, hdrs = {}):
   ''' modify mdrun.c '''
 
   if not tmphastag(txtinp, "mdrun.c"): return ""
-  if not fn: fn = pathswitch("kernel/mdrun.c", "programs/mdrun/mdrun.c")
 
-  c = CCGMX(fn, None, obj, pfx, hdrs)
+  c = CCGMX(gmxcom.getf("mdrun.c"), None, obj, pfx, hdrs)
   c.mdcom()
 
   # determine if we need `static'
