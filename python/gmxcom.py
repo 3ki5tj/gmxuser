@@ -222,7 +222,7 @@ def mkmdp(params = {}):
       d[k] = params[k]
 
   s = ["; machine-generated GROMACS parameter file\n", ]
-  for k in d:
+  for k in sorted(d):
     s += [ k + " = " + str(d[k]) + "\n" ]
   return ''.join(s)
 

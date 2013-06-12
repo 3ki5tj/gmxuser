@@ -2,7 +2,7 @@ Gromacs 4.0
 ===============
 
 Overview
-=========
+----------
  *  the parallelism is through MPI, threads are not used.
  *  it has domain-decomposition
  *  no GPU (OpenMM)
@@ -11,8 +11,16 @@ Overview
 
 
 
+git
+----
+cd ~/work/gmx
+git clone git://git.gromacs.org/gromacs.git gromacs45
+git checkout release-4-5-patches
+
+
+
 Build
-=======
+-------
 
 build a home version
 ~~~~~~~~~~~~~~~~~~~~~

@@ -261,11 +261,11 @@ def main():
   decl = CCGMX(None, txthdr, obj, pfx, hdrs)
   decl.shdr()
 
-  if gmxver < 40010:
+  if gmxver < 40100:
     import ccmdxv40 as ccmdx
   else:
     import ccmdx
-    if gmxver >= 40600:
+    if gmxver >= 40700:
       print "Warning: this version", gmxver, "of GROMACS is unsupported"
       #raise Exception
 

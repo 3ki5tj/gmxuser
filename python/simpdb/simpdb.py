@@ -135,6 +135,7 @@ def doargs():
   else:
     print "need a pdb file"
     usage()
+
   return fnpdb, fngro, ff, water, solvent, mdparams
 
 
@@ -146,6 +147,9 @@ def main():
   # use particle decomposition for implicit solvent simulation
   pd = (solvent == "implicit")
   setuppaths(gmxexe, gmxsrc) # set up paths
+  if gmxver < 40500 and solvent == "implicit":
+    print "implicit solvent are not supported for GROMACS 4.0 or lower (%s)" % gmxver
+    raise Exception
   capture = (verbose == 0) # if not verbose, we suppress the output
 
   # convert `fnpdb' to the absolute path, if it is a path
@@ -340,7 +344,7 @@ def runmd(fningro, fnout, fnmdp, fntop, pd, capture):
 
 def myfind(fn, root):
   ''' find `fn' under directory `root' '''
-  ls = zcom.pathglob([fn], root, True)
+  ls = zcom.pathglob([fn], root, True, links = True)
   if len(ls): return ls[0]
   else: return fn
 

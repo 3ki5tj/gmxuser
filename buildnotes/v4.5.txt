@@ -3,7 +3,7 @@ Gromacs 4.5
 
 
 Overview
-=========
+---------
  *  the parallelism can be done through MPI, or tMPI (thread version
     pretending to be MPI)
  *  GPU (OpenMM) build in
@@ -12,8 +12,17 @@ Overview
  *  still C based code
 
 
+
+git
+----
+cd ~/work/gmx
+git clone git://git.gromacs.org/gromacs.git gromacs45
+git checkout release-4-5-patches
+
+
+
 build v4.5 (float, shared, 32-bit)
-=====================================================
+-----------------------------------
 build fftw first (see build.txt)
 
 mkdir buildgcc32 && cd buildgcc32
@@ -34,7 +43,7 @@ $HOME/work/gmx/gromacs45/buildgcc32/src/kernel
 
 
 build v4.5 (default: float, shared, 64-bit)
-=====================================================
+--------------------------------------------
 
 * install g++, sudo apt-get install g++
 * install libxml2, sudo apt-get install libxml2-dev
@@ -51,7 +60,7 @@ $HOME/work/gmx/gromacs45/buildgcc/src/kernel
 
 
 build v4.5 (float, static, 64-bit)
-=====================================================
+-------------------------------------
 build fftw first (see build.txt)
 
 mkdir buildgcc_static && cd buildgcc_static

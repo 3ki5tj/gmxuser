@@ -396,7 +396,10 @@ def get_runner_c(txtinp, obj, pfx, hdrs = {}):
 
   # clear the ``if (do_md == do_md\n)'' mess, after replacing integrator
   # cf. v4.5, runner.c, line 785
-  c.rmline("if (do_md == do_md", off1 = 2)
+  # the offset should be 1 for v4.6, but 2 for v4.5
+  # because the ending ) is on the next line
+  c.rmln(r"if\s*\(\s*do_md\s*==\s*do_md\s*$", off1 = 2)
+  c.rmln(r"if\s*\(\s*do_md\s*==\s*do_md\s*\)\s*$", off1 = 1)
 
   # remove unused variables
   c.addifdef("t_commrec\s+\*cr_old\s*=\s*cr;", "GMX_THREADS")

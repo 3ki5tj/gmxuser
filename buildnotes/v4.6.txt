@@ -8,3 +8,14 @@ Overview
  *  no autotools
 
 
+
+git
+----
+cd ~/work/gmx
+git clone git://git.gromacs.org/gromacs.git gromacs46
+git checkout release-4-6
+
+
+build v4.6 (float, shared, 32-bit)
+-----------------------------------
+see v4.5.txt
