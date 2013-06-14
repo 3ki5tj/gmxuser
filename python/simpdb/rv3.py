@@ -35,3 +35,7 @@ def perpen(a, b):
 
 def vmin(a, b):
   return [min(a[i], b[i]) for i in range(3)]
+
+def vround(a, n = 0):
+  return [round(x, n) for x in a]
+

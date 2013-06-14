@@ -158,7 +158,7 @@ class CCGMX(CC):
     c.rmblock('if (bTCR', doall = True)
     c.rmline('bTCR = ftp2bSet', wcmt = True)
     c.rmline('t_coupl_rec *tcr=NULL;')
-    c.substt('bTCR=FALSE,', '')
+    c.subs('bTCR\s*=\s*FALSE,', '')
 
 
   def rmffscan(c):
@@ -173,20 +173,15 @@ class CCGMX(CC):
   def rmre(c):
     ''' remove replica exchange stuff '''
     c.rmblock('if (repl_ex_nst > 0 && MASTER(cr))')
-    c.subs('\(bExchanged \|\| \((.*)\)\)\s*\{', r'(\1) {',
-        pat = 'if \(bExchanged \|\| \(ir\-\>nstlist')
     c.rmblock('if (repl_ex_nst != 0 && nmultisim < 2)')
-    c.rmblock('if (bExchanged && PAR(cr))')
-    c.rmline('bExchanged = FALSE;', wcmt = True, doall = True)
     c.rmblock('print_replica_exchange_statistics(fplog')
     c.rmblock('init_multisystem(cr')
-    c.substt(' || bExchanged', '', doall = True)
     c.rmblock('if ((repl_ex_nst > 0) && (step > 0)')
     c.rmline('etINT, {&repl_ex_nst}', off1 = 2)
     c.rmline('etINT, {&repl_ex_seed}', off1 = 2)
     c.rmline('etINT,{&nmultisim}', off1 = 2)
     c.rmline("gmx_repl_ex_t repl_ex=NULL;")
-    c.substt(',bExchanged', '', 'bSumEkinhOld,bExchanged;')
+
     if gmxcom.isver4():
       c.rmline('int nmultisim=0;')
       c.rmline('int repl_ex_nst=0;')

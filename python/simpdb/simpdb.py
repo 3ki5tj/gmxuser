@@ -11,10 +11,8 @@ import gmxcom
 d2g = math.pi/180   # degree to radian
 fntop = "topol.top" # default topology file
 
-boxsize = 6.5
 nsteps_warmup = 100 # number of steps during 300K warm up simulation
 nsteps_runtime = 2000000000 # number of steps in the actual simulation
-emnaked = False
 dopbs = False
 verbose = 0
 
@@ -40,22 +38,32 @@ def usage():
   Copyright (c) 2010-2013, Cheng Zhang
 
   OPTIONS:
-   -o               followed by output .gro file
-   -b, --box=       followed by the box size
-   -W, --warmup=    followed by the number of steps in the 300K warm-up simulation
-   -R, --runtime=   followed by the actual simulation runtime
-   -B, --gmxexe=    root directory for GROMACS building tree
-   -S, --gmxsrc=    root directory for GROMACS source code tree
-   --ver=           GROMACS version, if --gmxsrc is not given
-   --ff=            force field
-   --water=         water model
-   -i, --implicit   implicit solvent
-   --mdp=           string of .mdp options separated by commas, like "a=1, b=2"
-   --emnaked        energy minimize the naked structure
-   --dopbs          produces a .pbs script
-   -v               be verbose
-   --verbose=       set verbocity
-   -h, --help       help
+    -o              followed by output .gro file
+    -d, --dist=     followed by the distance from the box boundaries
+                    in angstroms
+    -W, --warmup=   followed by the number of steps in the 300K warm-up simulation
+    -R, --runtime=  followed by the actual simulation runtime
+    -B, --gmxexe=   root directory for GROMACS building tree
+    -S, --gmxsrc=   root directory for GROMACS source code tree
+    --ver=          GROMACS version, if --gmxsrc is not given
+    --ff=           force field
+    --water=        water model
+    -i, --implicit  implicit solvent
+    --mdp=          string of .mdp options separated by commas, like "a=1, b=2"
+    --prep=         the prepapre directory
+    --dopbs         produces a .pbs script
+    -X, --extend    simulate an extended state
+    -R, --rotate=   rotation angle in degrees in the horizontal x-y plane
+    -W, --swing=    the swinging angle in degrees between successive
+                    peptide planes. If `rotate' is zero, the projection of
+                    backbone trace on x-y plane is a zig-zag line around
+                    the straight line, deflected only at alpha-carbons (CA)
+                    The angles of segments at the joints is `swing'
+    -S, --rise=     angle in degrees of rising in the vertical z-axis
+    -T, --ter=      terminals caps, can be "N" (ACE), "C" (NH2) or "NC"
+    -v              be verbose
+    --verbose=      set verbocity
+    -h, --help      help
 
   Note, for GROMACS 4.0.x, the input .pdb must go through `amberize' first
   """
@@ -67,34 +75,43 @@ def doargs():
   ''' handle input arguments '''
   try:
     opts, args = getopt.gnu_getopt(sys.argv[1:],
-        "hvW:d:b:o:B:S:i",
+        "hvW:d:o:e:s:iR:W:S:xX",
         [ "help", "verbose=",
           "gmxexe=", "gmxsrc=", "ver=", "version=",
           "ff=", "water=", "mdp=", "implicit=",
-          "box=", "output=", "warmup=", "emnaked"])
+          "dist=", "output=", "warmup=",
+          "extend", "rotate=", "swing=", "rise=", "ter=",
+          "prep=",
+        ] )
   except getopt.GetoptError, err:
     print str(err)
     usage()
 
-  global gmxexe, gmxsrc, gmxver, verbose, emnaked, dopbs
-  global boxsize, nsteps_warmup, nsteps_runtime
+  global gmxexe, gmxsrc, gmxver, verbose, dopbs
+  global nsteps_warmup, nsteps_runtime
 
   ff = "amber99sb-ildn"
   water = "tip3p"
-  fngro = "init.gro"
+  fngro = None
   sver = None
   solvent = "explicit"
   mdparams = {}
+  prepdir = None
+
+  natext = 1 # native simulation
+  rotang = swgang = risang = None
+  ter = ""
+  dist = 4.5 # angstroms
 
   for o, a in opts:
     if o in ("-v",):
       verbose += 1  # such that -vv gives verbose = 2
     elif o in ("--verbose",):
       verbose = int(a)
-    elif o in ("-b", "--box",):
-      boxsize = float(a)
     elif o in ("-o", "--output",):
       fngro = a
+    elif o in ("-d", "--dist",):
+      dist = float(a)
     elif o in ("-W", "--warmup",):
       nsteps_warmup = int(a)
     elif o in ("-R", "--runtime",):
@@ -105,22 +122,35 @@ def doargs():
       water = a
     elif o in ("-i", "--implicit",):
       solvent = "implicit"
-      emnaked = True
     elif o in ("--mdparams",):
       # parse the .mdp string
       for s in a.strip(", ").split():
         k, v = s.split("=")
         mdparams[k.strip()] = v.strip()
-    elif o in ("--emnaked",):
-      emnaked = True
+    elif o in ("--prep",):
+      prepdir = a
     elif o in ("--dopbs",):
       dopbs = True
-    elif o in ("-B", "--gmxexe",):
+    elif o in ("-e", "--gmxexe",):
       gmxexe = a
-    elif o in ("-S", "--gmxsrc",):
+    elif o in ("-s", "--gmxsrc",):
       gmxsrc = a
     elif o in ("--ver", "--version",):
       sver = a
+
+    elif o in ("-x", "--extend",):
+      natext = 2
+    elif o in ("-X",):
+      natext = 3 # both native and extended state
+    elif o in ("-R", "--rotate",):
+      rotang = float(a) * math.pi/180
+    elif o in ("-W", "--swing",):
+      swgang = float(a) * math.pi/180
+    elif o in ("-S", "--rise",):
+      risang = float(a) * math.pi/180
+    elif o in ("-T", "--ter"):
+      ter = a
+
     elif o in ("-h", "--help"):
       usage()
 
@@ -136,49 +166,52 @@ def doargs():
     print "need a pdb file"
     usage()
 
-  return fnpdb, fngro, ff, water, solvent, mdparams
+  return fnpdb, fngro, ff, water, solvent, dist, mdparams, natext, [
+      rotang, swgang, risang], ter, prepdir
 
 
 
-def main():
-  global gmxexe, gmxsrc, dopbs
+def dosimul(fnpdb, fngro, ff, water, solvent, nmaxsol,
+            dist, mdp, doext, angs, ter, prepdir):
+  global gmxexe, gmxsrc, dopbs, verbose
 
-  fnpdb, fngro, ff, water, solvent, mdp = doargs()
   # use particle decomposition for implicit solvent simulation
   pd = (solvent == "implicit")
-  setuppaths(gmxexe, gmxsrc) # set up paths
   if gmxver < 40500 and solvent == "implicit":
     print "implicit solvent are not supported for GROMACS 4.0 or lower (%s)" % gmxver
     raise Exception
   capture = (verbose == 0) # if not verbose, we suppress the output
 
   # convert `fnpdb' to the absolute path, if it is a path
-  if os.path.exists(fnpdb):
-    fnpdb = os.path.realpath(fnpdb)
+  if os.path.exists(fnpdb): fnpdb = os.path.realpath(fnpdb)
 
   # create a working directory and switch into it
-  prepdir = "prep"
+  if prepdir == None: prepdir = "prep"
+  if doext: prepdir += "x"
   zcom.mkpath(prepdir, force = True)
   os.chdir(prepdir)
 
+  # 0. prepare the PDB file
+  fnpdb = mkpdb(fnpdb, doext, angs, ter)
+
   # 1. convert .pdb to .gro file
-  wfnpdb = mkpdb(fnpdb)
-  boxgro, charge = mkgro(wfnpdb, boxsize, ff, water, fntop)
+  boxsize = guessboxsize(fnpdb, dist)
+  print "box", boxsize
+  boxgro, charge = mkgro(fnpdb, boxsize, ff, water, fntop)
 
   # write a few .mdp files
   open("em.mdp", "w").write(mkemmdp(pd))
-  open("300.mdp", "w").write(
-      mkmdmdp(nsteps_warmup, charge, solvent, params = mdp))
-  if emnaked:
-    boxgro = runmd(boxgro, "em0", "em.mdp", fntop, pd, capture)
+  smdp = mkmdmdp(nsteps_warmup, charge, solvent, params = mdp)
+  open("300.mdp", "w").write(smdp)
+  boxgro = runmd(boxgro, "em0", "em.mdp", fntop, pd, capture)
 
   if solvent == "explicit":
     # 2. add water
-    solgro = addwater(boxgro, charge, fntop, capture)
-
+    solgro, nsol = addwater(boxgro, charge, nmaxsol, fntop, capture)
     # 3. energy minimization to remove the friction between protein and water
     emgro = runmd(solgro, "em", "em.mdp", fntop, pd, capture)
   else:
+    nsol = 0
     emgro = boxgro
 
   # 4. warm up to room temperature
@@ -186,25 +219,93 @@ def main():
 
   # 5. switch out of the working directory
   os.chdir(os.pardir)
+  fngro = "init.gro"
+  if doext: fngro = "initx.gro"
   # copy the initial coordinates and topology files
   shutil.copy2(os.path.join(prepdir, roomgro), fngro)
   shutil.copy2(os.path.join(prepdir, fntop), fntop)
-  open("mdrun.mdp", "w").write(
-      mkmdmdp(nsteps_runtime, charge, solvent, params = mdp))
+  return charge, nsol
+
+
+
+def main():
+  global gmxexe, gmxsrc, dopbs
+
+  (fnpdb, fngro, ff, water, solvent, dist, mdp,
+   natext, angs, ter, prepdir) = doargs()
+
+  setuppaths(gmxexe, gmxsrc)
+  charge = 0
+  nsol = 0
+
+  # first extended configuration (less water molecules)
+  # then native configuration (more water molecules)
+  for ex in (2, 1):
+    if natext & ex:
+      doext = ex - 1
+      charge, nsol = dosimul(fnpdb, fngro, ff, water, solvent, nsol,
+          dist, mdp, doext, angs, ter, prepdir)
+
+  srcmdp = mkmdmdp(nsteps_runtime, charge, solvent, params = mdp)
+  open("mdrun.mdp", "w").write(srcmdp)
   if dopbs:
     open("foo.pbs", "w").write(mkpbs("foo", molname, fngro, fntop))
 
 
 
-def mkpdb(fnpdb):
+def guessboxsize(fnpdb, dist):
+  ''' guess box size '''
+
+  nres = 0
+  for ln in open(fnpdb).readlines():
+    if ln.startswith("ENDMDL") or ln.startswith("TER"):
+      break # stop after the first model
+    if not ln.startswith("ATOM"):
+      continue
+    if re.search("^ATOM\s*[0-9]+\s*CA ", ln):
+      nres += 1
+  # angstrom to nm
+  return round(math.sqrt(nres)*3.5 + 14.5 + 2 * dist) * 0.1
+
+
+
+def renumpdb(fnpdb):
+  ''' renumber residues starting from 1
+      remove the chain label '''
+
+  src = open(fnpdb).readlines()
+  minid = len(src) + 1
+  for i in range(len(src)):
+    if src[i].startswith("ATOM"):
+      minid = min(minid, int(src[i][22:26].strip()))
+  if minid > len(src): return fnpdb # failed
+
+  # deduct the offset
+  newsrc = []
+  for i in range(len(src)):
+    if src[i].startswith("ATOM"):
+      ln = src[i]
+      resid = int( ln[22:26].strip() ) - minid + 1
+      # here we also clear ln[21] to space for the chain id
+      src[i] = ln[:21] + " %4d" % resid + ln[26:]
+      newsrc += [ src[i], ]
+  newpdb = "renum.pdb"
+  print "minimal residue index is %s, file %s" % (minid, newpdb)
+  open(newpdb, "w").writelines(newsrc)
+  return newpdb
+
+
+
+def mkpdb(fnpdb, doext, angs, ter):
   ''' copy PDB to the running directory '''
 
+  # 1. copy or download the input pdb into the working directory
   if os.path.exists(fnpdb):
     # copy `fnpdb' to the current directory
     fnpdb0 = os.path.basename(fnpdb)
     shutil.copy2(fnpdb, fnpdb0)
     print "copying %s to %s" % (fnpdb, fnpdb0)
-    return fnpdb0
+    fnpdb = fnpdb
   else:
     # `fnpdb' is the standard 4-letter PDB code
     if not fnpdb.endswith(".pdb") and len(fnpdb) == 4:
@@ -215,7 +316,20 @@ def mkpdb(fnpdb):
         system = True)[0] != 0:
       print "cannot download", fnpdb
       raise Exception
-    return fnpdb
+
+  # 2. create an extended configuration
+  if doext:
+    fnpdbx = "out.pdb"
+    import mkspx
+    seq = mkspx.pdb2seq(fnpdb)
+    src = mkspx.mkpdb(seq, angs, ter, False, gmxver)
+    print("saving the extended configuration to " + fnpdbx)
+    open(fnpdbx, "w").write(src)
+    fnpdb = fnpdbx
+
+  # 3. renumber residues from 1
+  fnpdb = renumpdb(fnpdb)
+  return fnpdb
 
 
 
@@ -258,15 +372,28 @@ def mkgro(fnpdb, boxsize, forcefield, sol, fntop):
 
 
 
-def addwater(boxgro, charge, fntop, capture):
-  ''' add water molecules and ions'''
+def addwater(boxgro, charge, nmaxsol, fntop, capture):
+  ''' add water molecules and ions '''
 
   global gmxtopdir, gmxtop
 
   solgro = "solve.gro"
-  ret = gmxshrun(genbox + " -cp " + boxgro +
-      " -cs spc216.gro -o " + solgro + " -p " + fntop,
-      capture)
+  nsol = 0
+  smaxsol = ""
+  if nmaxsol:
+    smaxsol = " -maxsol %s " % nmaxsol
+  # add water molecules
+  ret, out, err = gmxshrun(genbox + " -cp " + boxgro +
+      " -cs spc216.gro -o " + solgro + " -p " + fntop + smaxsol,
+      True)
+  for ln in err.splitlines(True):
+    m = re.match(r"Number\s+of\s+SOL\s+molecules:\s*([0-9]+)", ln)
+    if m:
+      nsol = int(m.group(1))
+      break
+  else:
+    print "cannot determine the # of solvents"
+    raise Exception
 
   if charge:
     # handle ions
@@ -317,7 +444,7 @@ Na 1
       open(fntop, "w").write(''.join(arr))
   else:
     iongro = solgro
-  return iongro
+  return iongro, nsol
 
 
 
@@ -391,7 +518,8 @@ def gmxshrun(cmd, capture = 0, verbose = 1):
   ''' write a shell script to run the program, s.t. GMXLIB is defined '''
   global gmxtopdir
   envars = {}
-  if gmxtopdir and os.path.exists: envars["GMXLIB"] = gmxtopdir
+  if gmxtopdir and os.path.exists:
+    envars["GMXLIB"] = gmxtopdir
   return zcom.shrun(cmd, capture, verbose, envars = envars)
 
 

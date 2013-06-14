@@ -45,20 +45,20 @@ def usage():
   OPTIONS
   -------
 
-  -o, --output=   the output PDB file, in which the coordinates assume
-                  an extended helical spiral
-  -R, --rotate=   rotation angle in degrees in the horizontal x-y plane
-  -W, --swing=    the swinging angle in degrees between successive
-                  peptide planes. If `rotate' is zero, the projection of
-                  backbone trace on x-y plane is a zig-zag line around
-                  the straight line, deflected only at alpha-carbons (CA)
-                  The angles of segments at the joints is `swing'
-  -S, --rise=     angle in degrees of rising in the vertical z-axis
-  -T, --ter=      terminals caps, can be "N" (ACE), "C" (NH2) or "NC"
-  --O0            set the N-terminal at the origin
-  --ver=          specify GROMACS version, e.g., "4.5"
-  -v, --verbose=  be verbose
-  -h, --help      help
+    -o, --output=   the output PDB file, in which the coordinates assume
+                    an extended helical spiral
+    -R, --rotate=   rotation angle in degrees in the horizontal x-y plane
+    -W, --swing=    the swinging angle in degrees between successive
+                    peptide planes. If `rotate' is zero, the projection of
+                    backbone trace on x-y plane is a zig-zag line around
+                    the straight line, deflected only at alpha-carbons (CA)
+                    The angles of segments at the joints is `swing'
+    -S, --rise=     angle in degrees of rising in the vertical z-axis
+    -T, --ter=      terminals caps, can be "N" (ACE), "C" (NH2) or "NC"
+    --O0            set the N-terminal at the origin
+    --ver=          specify GROMACS version, e.g., "4.5"
+    -v, --verbose=  be verbose
+    -h, --help      help
 
 
   Sequence file
@@ -138,28 +138,30 @@ def doargs():
     print "need an input"
     usage()
 
-  print("input", fninp, " output", fnout,
-        " GROMACS", gmxver, " verbose", verbose,
-        " angles(rad) ", [rotang, swgang, risang])
+  print "input", fninp, " output", fnout, " GROMACS", gmxver, " verbose", verbose,
+  print " angles(rad) ", [rotang, swgang, risang], " ter ", ter
   return fninp, fnout, [rotang, swgang, risang], ter, start0, gmxver, verbose
 
 
 
 def main():
   fninp, fnout, angs, ter, start0, gmxver, verbose = doargs()
-  if not os.path.exists(fninp) and re.match("[a-zA-Z0-9]{4}", fninp):
+
+  if not os.path.exists(fninp) and re.match("[a-zA-Z0-9]{4}$", fninp):
     fninp += ".pdb"
     if os.system("wget http://www.rcsb.org/pdb/files/" + fninp) != 0:
       print "cannot download", fninp
       raise Exception
+
   if fninp.lower().endswith(".pdb"):
     seq = pdb2seq(fninp)
   else:
     seq = readseq(fninp, angs)
 
   src = mkpdb(seq, angs, ter, start0, gmxver)
+
   if fnout == None: fnout = "out.pdb"
-  print("writing " + fnout)
+  print "writing", fnout
   open(fnout, "w").write(src)
 
 
@@ -250,18 +252,24 @@ def readseq(fn, angs):
 def pdb2seq(fnpdb):
   ''' gather sequence information from pdb '''
 
-  s = open(fnpdb).readlines()
-
-  # determine the sequence from the PDB
+  # 1. determine the sequence from the PDB
   seq = []
-  for ln in s:
-    if not ln.startswith("ATOM"): continue
-    if not re.search("^ATOM\s*[0-9]+\s*CA ", ln): continue
+  s = []
+  # since the PDB file can be large, we only read one line at a time
+  for ln in open(fnpdb).readlines():
+    if ln.startswith("ENDMDL") or ln.startswith("TER"):
+      break # stop after the first model
+    if not ln.startswith("ATOM"):
+      continue
+    # save lines of atom coordinates
+    s += [ ln, ]
+    if not re.search("^ATOM\s*[0-9]+\s*CA ", ln):
+      continue
     res = ln[17:21].strip()
     resid = ln[22:26].strip() # keep it as a string
     seq += [ [res, resid], ] # use resid as a temporary tag
 
-  # determine the rotamers
+  # 2. determine the rotamers of the CG atom
   for i in range(len(seq)):
     res, resid = seq[i]
 
@@ -292,10 +300,9 @@ def pdb2seq(fnpdb):
       # G1 position, opposite to C in the C=O group
       # G2 position, opposite to N in the N-H group
       # G3 position, p, q and u are perpendicular to w
-      if dot1 > 0 or dot2 > 0:
-        if dot1 > dot2: rotamer = 1
-        else: rotamer = 2
-      else: rotamer = 3
+      if dot1 < 0 and dot2 < 0: rotamer = 3
+      elif dot1 > dot2: rotamer = 1
+      else: rotamer = 2
       #print(i, resid, xn, xc, xca, xcb, xcg)
       seq[i] = (res, rotamer)
   return seq
@@ -314,9 +321,23 @@ def mkatom(atomid, atomname, resname, resid, x, ele = ""):
 
 
 
+def getminmax(r):
+  ''' compute the system dimension '''
+
+  xmin = [1000,] * 3
+  xmax = rv3.neg(xmin)
+  for d in range(3):
+    ls = [ r[k][d] for k in range(len(r)) ]
+    xmin[d] = min(ls)
+    xmax[d] = max(ls)
+  return xmin, xmax
+
+
+
 def mkpdb(seq, angs, ter, start0, gmxver):
   ''' write a .pdb file with the given sequence information '''
 
+  nres = len(seq)
   if not ter: ter = ""  # in case `ter == None'
   if "N" in ter: # add the N-terminal cap
     seq = [ ["ACE", None], ] + seq
@@ -340,7 +361,9 @@ def mkpdb(seq, angs, ter, start0, gmxver):
   B_CC_RING = 1.40
 
   # cosine and sine values
+  c12, s12 = cos(12 * D2R), sin(12 * D2R)
   c30, s30 = cos(30 * D2R), sin(30 * D2R)
+  c36, s36 = cos(36 * D2R), sin(36 * D2R)
   c72, s72 = cos(72 * D2R), sin(72 * D2R)
 
   r''' compute angles of the spiral
@@ -371,9 +394,19 @@ def mkpdb(seq, angs, ter, start0, gmxver):
   * `risang' is vertical tilting angle '''
   rotang, swgang, risang = angs
   # default values
-  if rotang == None: rotang = 10 * D2R
-  if swgang == None: swgang = 50 * D2R
-  if risang == None: risang = 9 * D2R
+  if rotang == None and swgang == None and risang == None:
+    # the resulting size:
+    # x-y width = sqrt(nres) * 3.5 + 14.5
+    rotang = 110.0 / sqrt(nres) * D2R
+    swgang = 50.0 * D2R
+    # the formula makes height = 0.707 * width
+    risang = (38.0 / sqrt(nres) + 81.0 / nres) * D2R
+    #risang = rotang * 0.37 # z height  = sqrt(nres) * 2.7 + 3.3
+  else:
+    # partially missing
+    if rotang == None: rotang = 10 * D2R
+    if swgang == None: swgang = 50 * D2R
+    if risang == None: risang = 9 * D2R
 
   ''' compute the average angle between N-CA with the horizontal plane
       The calculation uses the approximation of `rotang = 0'
@@ -392,7 +425,7 @@ def mkpdb(seq, angs, ter, start0, gmxver):
   q = cos(swgang) * cr**2 + sr**2 - 1./3
   q /= 1 + cos(swgang)
   if q < 0:
-    print("turning angle %s too large" % (swg * R2D) )
+    print "turning angle %s too large" % (swg * R2D)
     raise Exception
   vang = asin( sqrt(q) )
 
@@ -407,7 +440,8 @@ def mkpdb(seq, angs, ter, start0, gmxver):
   phi = .5 * acos(-1./3)
   c3, s3 = cos(phi), sin(phi)
 
-  print("angles", angs, thp, thm)
+  print "angles", rv3.vround([rotang, swgang, risang], 5), "res", nres,
+  print "theta+:", round(thp, 3), "theta-:", round(thm, 3)
 
   resid = 0
   n = len(seq)
@@ -490,7 +524,7 @@ def mkpdb(seq, angs, ter, start0, gmxver):
 
     if i > 0 or resnm != None: # we may skip the N-terminal ACE
       atomls.append( ["C", resid, xc] )
-      if i == n - 1 and not "N" in ter: # no C-terminal cap
+      if i == n - 1 and not "C" in ter: # no C-terminal cap
         atomls.append( ["OC1", resid, xo] )
         u = rv3.normalize( rv3.diff(xc, xo) )
         v = rv3.normalize( rv3.diff(xc, xca) )
@@ -553,8 +587,6 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       v = rv3.normalize( rv3.diff(xg, xcb) )
       u = rv3.normalize( rv3.cross(v, rv3.diff(xca, xcb) ) )
       if xg == xcg2: u = rv3.neg(u)
-      c12, s12 = cos(12 * D2R), sin(12 * D2R)
-      c36, s36 = cos(36 * D2R), sin(36 * D2R)
       x8 = [[0,0,0],] * 8
       x8[0] = rv3.lincomb(xg,    rv3.lincomb2(u, v,  c36,  s36), B_CC_RING) # CD1
       x8[1] = rv3.lincomb(xg,    rv3.lincomb2(u, v, -c36,  s36), B_CC_RING) # CD2
@@ -681,41 +713,39 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       atomls.append( ["CG", resid, xg] )
 
     else:
-      print("residue %d: %s is not supported" % (i, resnm) )
+      print "residue %d: %s is not supported" % (i, resnm)
 
     resid += 1
 
-  if not start0: # shift the coordinates to make them nonnegative
-    xm = [0, 0, 0]
-    for d in range(3):
-      xm[d] = min([ atomls[k][2][d] for k in range(len(atomls)) ])
-    if "N" in ter: xm = rv3.vmin(xm, xn)
-    # add 3A for margin
-    xm = rv3.diff(xm, [3, 3, 3])
+  if "C" in ter:
+    atomls.append( ["N", resid, xn] )
+    seq += [ ["NH2", 0], ]
+    resid += 1
+
+  r = [ a[2] for a in atomls ]
+  xmin, xmax = getminmax(r)
+  print len(seq)-1, "residues, System dimension:", rv3.vround(rv3.diff(xmax, xmin), 2), " rising", (risang/rotang)
+
+  # shift the coordinates to make them nonnegative
+  if not start0:
+    # add 2-angstrom margin
+    xshift = rv3.add(xmin, [-2, -2, -2])
 
     for k in range(len(atomls)): # shift coordinates
       atnm, resid, x = atomls[k]
-      atomls[k] = [atnm, resid, rv3.diff(x, xm)]
-    if "N" in ter: xn = rv3.diff(xn, xm)
+      atomls[k] = [atnm, resid, rv3.diff(x, xshift)]
 
+  # write a PDB file
   src = ""
   resid = 0
   offset = 0
-  if "C" in ter: offset = 1
+  if "N" in ter: offset = 1
   for k in range(len(atomls)):
     atnm, resid, x = atomls[k]
     resnm = seq[resid][0]
     src += mkatom(k + 1, atnm, resnm, resid + offset, x)
-  k += 1
-  resid += 1 + offset
-
-  if "N" in ter: # add the C-terminal cap
-    resnm = "NH2"
-    src += mkatom(k + 1, "N", resnm, resid, xn)
-    k += 1
-    resid += 1
-
-  src += "TER    %4d      %-4s %4d%56s\n" % (k + 1, resnm, resid - 1, " ")
+  src += "TER    %4d      %-4s %4d%56s\n" % (
+      k + 2, resnm, resid + offset, " ")
 
   return src
 

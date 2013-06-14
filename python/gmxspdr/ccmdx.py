@@ -24,8 +24,10 @@ def get_bondfree_c(txtinp, obj, pfx, hdrs = {}):
   c = CCGMX(gmxcom.getf("bondfree.c"), None, obj, pfx, hdrs = hdrs)
   c.mdcom()
 
-  # I. remove unnecessary functions
+  # necessary
   c.rmdf("SIMD_BONDEDS")
+
+  # I. remove unnecessary functions
   c.rmfunc("const int cmap_coeff_matrix[] = {")
   c.rmfunc("int glatnr(int *global_atom_index,")
   c.rmfunc("static int pbc_rvec_sub(const t_pbc *pbc,")
@@ -47,15 +49,15 @@ def get_bondfree_c(txtinp, obj, pfx, hdrs = {}):
   c.rmfunc("real quartic_angles(int nbonds,")
   c.rmfunc("real dih_angle(const rvec xi,")
   c.rmfunc("void do_dih_fup(int i,")
-  c.rmfunc("do_dih_fup_noshiftf(int i,", starter = "static void")
   c.rmfunc("do_dih_fup_noshiftf_precalc(int i,", starter = "static")
   c.rmfunc("real dopdihs(real cpA,")
-  c.rmfunc("dopdihs_noener(real cpA,", starter = "static void")
   c.rmfunc("static real dopdihs_min(real cpA,")
   c.rmfunc("dopdihs_mdphi(real cpA,", starter = "static void")
   c.rmfunc("real pdihs(int nbonds,")
   c.rmfunc("void make_dp_periodic(real *dp)")
-  c.rmfunc("pdihs_noener(int nbonds,", starter = "static void")
+  #c.rmfunc("do_dih_fup_noshiftf(int i,", starter = "static void")
+  #c.rmfunc("dopdihs_noener(real cpA,", starter = "static void")
+  #c.rmfunc("pdihs_noener(int nbonds,", starter = "static void")
   c.rmfunc("real idihs(int nbonds,")
   c.rmfunc("real posres(int nbonds,")
   c.rmfunc("static void posres_dx(const rvec x,")
@@ -233,17 +235,9 @@ def get_md_c(txtinp, obj, pfx, hdrs = {}):
   c.mutfunc2("do_md", iscall = False)
   declend = c.end
 
-  # insert a variable `%PFX_moved%'
-  for i in range(declend, len(c.s)):
-    if c.s[i].strip() == "{":
-      break
-  else:
-    print "cannot find `{' after decl. of `do_md()' in %s, %s\n%s" % (
-        c.fn, declend, ''.join( c.s[c.begin:c.end+1] ) )
-    raise Exception
+  # change `bExchanged' to `varmv'
   varmv = c.pfx + "_moved"
-  c.addln(i + 1, "\tint %s = 0;\n" % varmv)
-
+  c.substt('bExchanged', varmv, doall = True)
 
   # add a call %pfx%_move()
   i = c.findline("bFirstStep = FALSE;", verbose = True)
@@ -262,12 +256,6 @@ def get_md_c(txtinp, obj, pfx, hdrs = {}):
   # change the call do_force()
   if tmphastag(txtinp, "sim_util.c"):
     c.mutfunc2("do_force", iscall = True)
-
-  # change a few bExchanged references to `varmv'
-  i = c.findline("if (bNS && ir->nstlist == -1)")
-  c.addln(i, "\t\t\tbNS = bNS || %s;\n" % varmv)
-  c.substt("bFirstStep", "bFirstStep || " + varmv,
-      "set_nlistheuristics(&nlh")
 
   # remove useless blocks
   # v4.5, md.c, lines 526-534, 795-804, 934-946
