@@ -7,10 +7,9 @@
 #define ZCOM_LOG
 #define ZCOM_CFG
 #define ZCOM_PDB
-#define ZCOM_ROTFIT
 #define ZCOM_AV
-#define ZCOM_TMH
 #include "zcom.h"
+#include "tmh.h"
 
 #ifndef BOLTZ
 #define BOLTZ  8.314511212e-3 /* Boltzmann constant */
@@ -404,7 +403,7 @@ static int ago_loadxref(ago_t *ago, const char *fn)
 /* calculate CA rmsd */
 static real ago_carmsd(ago_t *ago, rv3_t x[])
 {
-  return rotfit3(x, NULL, ago->xref, ago->wt, ago->nat, NULL, NULL);
+  return rv3_rmsd(x, NULL, ago->xref, ago->wt, ago->nat, NULL, NULL);
 }
 
 /* load previous mean force data */

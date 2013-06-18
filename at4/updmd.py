@@ -113,7 +113,7 @@ def dozcom(fn):
   ''' update zcom '''
   keys = [ [] ]*3
   keys[1] = ['def', 'util', 'rng', 'opt', 'cfg', 'log', 'endn', 'ss', 'argopt']
-  keys[2] = keys[1] + ['rc', 'rv3', 'mds', 'eig', 'clus', 'specfunc', 'distr', 'rotfit']
+  keys[2] = keys[1] + ['rc', 'rv3', 'mds', 'eig', 'clus', 'specfunc', 'distr', 'hist']
 
   for i in [1, 2]:
     pt = os.path.splitext(fn)

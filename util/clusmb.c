@@ -8,10 +8,9 @@
 #define ZCOM_UTIL
 #define ZCOM_RV3
 #define ZCOM_SS
-#define ZCOM_CLUS
 #define ZCOM_ARGOPT
-#define ZCOM_ROTFIT
 #include "zcom2.h"
+#include "clus.h"
 
 const char *fnxtc = "fit.xtc";
 const char *fntop = "naked.tpr";
@@ -329,7 +328,7 @@ static float **calcrmsmat(xmovie_t *xmov)
       do_fit(nat, vmass, x2, x1b);
       mat[i][j] = rmsdev(nat, vmass, x2, x1b);
 */
-      mat[i][j] = rotfit3(x1, NULL, x2, vmass, nat, NULL, NULL);
+      mat[i][j] = rv3_rmsd(x1, NULL, x2, vmass, nat, NULL, NULL);
       if (++np % 1000 == 0)
         printf("computing rmsd for %d, %d %d/%d = %g%%; \r", i, j, np, npr, 100.0*np/npr);
     }

@@ -976,9 +976,9 @@ static void print_large_forces(FILE *fp,t_mdatoms *md,t_commrec *cr,
   }
 }
 
-void agox_doforce(FILE *fplog,t_commrec *cr,
+void agox_doforce(FILE *fplog, t_commrec *cr,
               t_inputrec *inputrec,
-              gmx_large_int_t step,t_nrnb *nrnb,gmx_wallcycle_t wcycle,
+              gmx_large_int_t step, t_nrnb *nrnb, gmx_wallcycle_t wcycle,
               gmx_localtop_t *top,
               gmx_mtop_t *mtop,
               gmx_groups_t *groups,
@@ -1303,11 +1303,6 @@ if (!(cr->duty & DUTY_PME)) {
   cycles_force = (float) wallcycle_stop(wcycle,ewcFORCE);
   GMX_BARRIER(cr->mpi_comm_mygroup);
 
-  if (ed)
-  {
-    do_flood(fplog,cr,x,f,ed,box,step);
-  }
-
   if (DOMAINDECOMP(cr))
   {
     dd_force_flop_stop(cr->dd,nrnb);
@@ -1371,7 +1366,11 @@ if (!(cr->duty & DUTY_PME)) {
     if (vsite && !(fr->bF_NoVirSum && !(flags & GMX_FORCE_VIRIAL)))
     {
       wallcycle_start(wcycle,ewcVSITESPREAD);
-      spread_vsite_f(fplog,vsite,x,f,fr->fshift,nrnb,
+      spread_vsite_f(fplog,vsite,x,f,fr->fshift,
+#if GMXVERSION >= 40500
+                     FALSE,NULL,
+#endif
+                     nrnb,
                      &top->idef,fr->ePBC,fr->bMolPBC,graph,box,cr);
       wallcycle_stop(wcycle,ewcVSITESPREAD);
 
@@ -1379,6 +1378,9 @@ if (!(cr->duty & DUTY_PME)) {
       {
         wallcycle_start(wcycle,ewcVSITESPREAD);
         spread_vsite_f(fplog,vsite,x,fr->f_twin,NULL,
+#if GMXVERSION >= 40500
+                       FALSE,NULL,
+#endif
                        nrnb,
                        &top->idef,fr->ePBC,fr->bMolPBC,graph,box,cr);
         wallcycle_stop(wcycle,ewcVSITESPREAD);
@@ -1446,7 +1448,11 @@ if (!(cr->duty & DUTY_PME)) {
        * if the constructing atoms aren't local.
        */
       wallcycle_start(wcycle,ewcVSITESPREAD);
-      spread_vsite_f(fplog,vsite,x,fr->f_novirsum,NULL,nrnb,
+      spread_vsite_f(fplog,vsite,x,fr->f_novirsum,NULL,
+#if GMXVERSION >= 40500
+                     (flags & GMX_FORCE_VIRIAL),fr->vir_el_recip,
+#endif
+                     nrnb,
                      &top->idef,fr->ePBC,fr->bMolPBC,graph,box,cr);
       wallcycle_stop(wcycle,ewcVSITESPREAD);
     }
