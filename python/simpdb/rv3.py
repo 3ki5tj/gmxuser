@@ -9,11 +9,11 @@ def neg(v): return [-v[0], -v[1], -v[2]]
 def lincomb2(a, b, u, v):
   return [ a[0]*u + b[0]*v, a[1]*u + b[1]*v, a[2]*u + b[2]*v ]
 
-def lincomb(a, b, v): return lincomb2(a, b, 1, v)
+def sadd(a, b, v): return lincomb2(a, b, 1, v)
 
-def add(a, b): return lincomb2(a, b, 1, 1)
+def add(a, b): return sadd(a, b, 1)
 
-def diff(a, b): return lincomb2(a, b, 1, -1)
+def diff(a, b): return sadd(a, b, -1)
 
 def dot(a, b): return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
@@ -31,7 +31,7 @@ def cross(a, b):
 
 def perpen(a, b):
   ''' perpendicular component of `a' to `b', normalized '''
-  return normalize( lincomb(a, b, -dot(a,b)/sqr(b)) )
+  return normalize( sadd(a, b, -dot(a,b)/sqr(b)) )
 
 def vmin(a, b):
   return [min(a[i], b[i]) for i in range(3)]

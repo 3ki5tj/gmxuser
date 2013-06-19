@@ -99,11 +99,11 @@ static double *lincomb2(double c[3], double a[3], double b[3], double gam1, doub
   return c;
 }
 
-#define lincomb(c, a, b, l) lincomb2(c, a, b, 1.0, l)
+#define sadd(c, a, b, l) lincomb2(c, a, b, 1.0, l)
 
-#define add(c, a, b) lincomb(c, a, b, 1.0)
+#define add(c, a, b) sadd(c, a, b, 1.0)
 
-#define diff(c, a, b) lincomb(c, a, b, -1.0)
+#define diff(c, a, b) sadd(c, a, b, -1.0)
 
 static double *cross(double q[3], double u[3], double v[3])
 {
@@ -128,7 +128,7 @@ static double *normalize(double v[3])
 static double *perpen(double p[], double a[], double b[])
 {
   double d = dot(a, b);
-  return normalize( lincomb(p, a, b, -d/dot(b, b)) );
+  return normalize( sadd(p, a, b, -d/dot(b, b)) );
 }
 
 
@@ -208,14 +208,14 @@ static void atomput(int atomid, char *atomname, char*resname, int resid,
 static void gentrp(double r[8][3], double g[3], double x[3], double y[3])
 {
   double v[3];
-  lincomb(r[0], g,    lincomb2(v, x, y,  c36,  s36), B_CC_RING); /* CD1 */
-  lincomb(r[1], g,    lincomb2(v, x, y, -c36,  s36), B_CC_RING); /* CD2 */
-  lincomb(r[2], r[0], lincomb2(v, x, y, -c72,  s72), B_CC_RING); /* NE1 */
-  lincomb(r[3], r[1], lincomb2(v, x, y,  c72,  s72), B_CC_RING); /* CE2 */
-  lincomb(r[4], r[1], lincomb2(v, x, y, -c12, -s12), B_CC_RING); /* CE3 */
-  lincomb(r[5], r[3], lincomb2(v, x, y, -c72,  s72), B_CC_RING); /* CZ2 */
-  lincomb(r[7], r[5], lincomb2(v, x, y, -c12, -s12), B_CC_RING); /* CH2 */
-  lincomb(r[6], r[7], lincomb2(v, x, y, -c72, -s72), B_CC_RING); /* CZ3 */
+  sadd(r[0], g,    lincomb2(v, x, y,  c36,  s36), B_CC_RING); /* CD1 */
+  sadd(r[1], g,    lincomb2(v, x, y, -c36,  s36), B_CC_RING); /* CD2 */
+  sadd(r[2], r[0], lincomb2(v, x, y, -c72,  s72), B_CC_RING); /* NE1 */
+  sadd(r[3], r[1], lincomb2(v, x, y,  c72,  s72), B_CC_RING); /* CE2 */
+  sadd(r[4], r[1], lincomb2(v, x, y, -c12, -s12), B_CC_RING); /* CE3 */
+  sadd(r[5], r[3], lincomb2(v, x, y, -c72,  s72), B_CC_RING); /* CZ2 */
+  sadd(r[7], r[5], lincomb2(v, x, y, -c12, -s12), B_CC_RING); /* CH2 */
+  sadd(r[6], r[7], lincomb2(v, x, y, -c72, -s72), B_CC_RING); /* CZ3 */
 }
 
 /* remove decorations around the residue name */
@@ -546,8 +546,8 @@ int main(int argc, char *argv[])
     /* s1 is the vertical component, c1 is the horizontal component,
      * which is subject to the planar angle cp and sp */
 
-    lincomb(xc, xca, dir_cac, B_CAC); /* C */
-    lincomb(xo, xc, mkv(v, -sr * cp, -sr * sp, cr), B_CO * sgn); /* O */
+    sadd(xc, xca, dir_cac, B_CAC); /* C */
+    sadd(xo, xc, mkv(v, -sr * cp, -sr * sp, cr), B_CO * sgn); /* O */
 
     /* Warning CB and CG atoms depends on dir_nca, which is unavailable
      * for the 0th atoms. But 0th atom is ACE, so it is OK */
@@ -555,7 +555,7 @@ int main(int argc, char *argv[])
     normalize( diff(p, dir_nca, dir_cac) ); /* p is the direction from C and N midpoint to CA */
     normalize( cross(q, dir_cac, dir_nca) );
     normalize( lincomb2(w, p, q, c3, s3) ); /* w is the direction from CA to CB */
-    lincomb(xcb, xca, w, B_CC);
+    sadd(xcb, xca, w, B_CC);
 
     /* calculate G1, G2 and G3 positions
      * definition:
@@ -571,28 +571,28 @@ int main(int argc, char *argv[])
      * the G oxygen, if on G1, has the highest priority! */
     /* CG1-CB should be in the same direction as CA-C(O) */
     normalize( diff(u, xca, xc) );
-    lincomb(xog1, xcb, u, B_CO);
-    lincomb(xcg1, xcb, u, B_CC);
+    sadd(xog1, xcb, u, B_CO);
+    sadd(xcg1, xcb, u, B_CC);
     /* OG2-CB should be along the same direction as CA-N
        G2 is opposite to N, viewing along CA-CB */
     normalize( diff(v, xca, xn) );
-    lincomb(xog2, xcb, v, B_CO);
-    lincomb(xcg2, xcb, v, B_CC);
+    sadd(xog2, xcb, v, B_CO);
+    sadd(xcg2, xcb, v, B_CC);
     /* G3: opposing H in CA, view along CA-CB */
     perpen(p, u, w); /* w is CA-->CB */
     perpen(q, v, w);
     add(u, p, q); /* add the two perpendicular components */
     normalize( lincomb2(v, u, w, -1.0, 1.0/3) );
-    lincomb(xog3, xcb, v, B_CO);
-    lincomb(xcg3, xcb, v, B_CC);
+    sadd(xog3, xcb, v, B_CO);
+    sadd(xcg3, xcb, v, B_CC);
 
     copy(xnp, xn);
-    lincomb(xn, xc, mkv(p, c2*cp, c2*sp, s2), B_CN_PEP); /* N */
+    sadd(xn, xc, mkv(p, c2*cp, c2*sp, s2), B_CN_PEP); /* N */
     /* dir_nca is the direction from N to the next CA
        it is along the same direction from this CA to C */
     copy(dir_nca, dir_cac);
     /* os is the position of the next O */
-    lincomb(os, xn, dir_nca, B_NCA);
+    sadd(os, xn, dir_nca, B_NCA);
 
     ang += swgang * sgn; /* so it is flipping around */
     cp = cos(ang);
@@ -622,7 +622,7 @@ int main(int argc, char *argv[])
       atomput(atomid++, "OC1", name[i], resid, xo, "O");
       normalize(diff(u, xc, xo));
       normalize(diff(v, xc, xca));
-      lincomb(p, xc, add(w, u, v), B_CO);
+      sadd(p, xc, add(w, u, v), B_CO);
       atomput(atomid++, "OC2", name[i], resid, p, "O");
     } else {
       atomput(atomid++, "O", name[i], resid, xo, "O");
@@ -656,10 +656,10 @@ int main(int argc, char *argv[])
       atomput(atomid++, "CD1", name[i], resid, p, "C");
       diff(u, xg, xcb); /* z axis; */
       normalize(cross(w, q, u)); /* x axis; */
-      lincomb(v, q,  u, -1.0/3); /* y axis; */
-      lincomb(p, xg, u,  1.0/3); /* (xcd1 + xcd2 + xcd3)/3 */
-      lincomb(p, p,  v, -1.0/2); /* (xcd2 + xcd3)/2 */
-      lincomb(p, p,  w, sqrt(2./3) * B_CC);
+      sadd(v, q,  u, -1.0/3); /* y axis; */
+      sadd(p, xg, u,  1.0/3); /* (xcd1 + xcd2 + xcd3)/3 */
+      sadd(p, p,  v, -1.0/2); /* (xcd2 + xcd3)/2 */
+      sadd(p, p,  w, sqrt(2./3) * B_CC);
       atomput(atomid++, "CD2", name[i], resid, p, "C");
     } else if (itype == ILE) {
       xg  = (pgamma[i] == 3) ? xcg3 : xcg1;
@@ -708,18 +708,18 @@ int main(int argc, char *argv[])
       lincomb2(q, v, w, s30*B_CC_RING, c30*B_CC_RING);
       add(p, xg, q);
       atomput(atomid++, "CD1", name[i], resid, p, "C");
-      lincomb(q, p, v, B_CC_RING);
+      sadd(q, p, v, B_CC_RING);
       atomput(atomid++, "CE1", name[i], resid, q, "C");
-      lincomb(q, xg, v, 2*B_CC_RING);
+      sadd(q, xg, v, 2*B_CC_RING);
       atomput(atomid++, "CZ", name[i], resid, q, "C");
       if (itype == TYR) {
-        lincomb(u, q, v, B_CO);
+        sadd(u, q, v, B_CO);
         atomput(atomid++, "OH", name[i], resid, u, "O");
       }
       lincomb2(q, v, w, s30*B_CC_RING, -c30*B_CC_RING);
       add(p, xg, q);
       atomput(atomid++, "CD2", name[i], resid, p, "C");
-      lincomb(q, p, v, B_CC_RING);
+      sadd(q, p, v, B_CC_RING);
       atomput(atomid++, "CE2", name[i], resid, q, "C");
 
     } else if (itype == THR) {
@@ -735,9 +735,9 @@ int main(int argc, char *argv[])
       normalize( v ); /* v is y */
       normalize( cross(u, v, diff(q, xcb, xg) ) ); /* u is x */
       /* NOTE I'm not sure which one should be called as OE1 */
-      lincomb(p, xcd, lincomb2(q, u, v, c30, s30), B_CO);
+      sadd(p, xcd, lincomb2(q, u, v, c30, s30), B_CO);
       atomput(atomid++, "OE1", name[i], resid, p, "O");
-      lincomb(p, xcd, lincomb2(q, u, v, -c30, s30), B_CO);
+      sadd(p, xcd, lincomb2(q, u, v, -c30, s30), B_CO);
       if (itype == GLU) {
         atomput(atomid++, "OE2", name[i], resid, p, "O");
       } else {
@@ -748,9 +748,9 @@ int main(int argc, char *argv[])
       atomput(atomid++, "CG", name[i], resid, xg, "C");
       normalize( diff(v, xg, xcb) ); /* v is y axis */
       perpen(u, diff(q, xca, xcb), v); /* u is x axis */
-      lincomb(p, xg, lincomb2(q, u, v, c30, s30), B_CO);
+      sadd(p, xg, lincomb2(q, u, v, c30, s30), B_CO);
       atomput(atomid++, "OD1", name[i], resid, p, "O");
-      lincomb(p, xg, lincomb2(q, u, v, -c30, s30), B_CO);
+      sadd(p, xg, lincomb2(q, u, v, -c30, s30), B_CO);
       if (itype == ASP) {
         atomput(atomid++, "OD2", name[i], resid, p, "O");
       } else {
@@ -763,21 +763,21 @@ int main(int argc, char *argv[])
       atomput(atomid++, "CD", name[i], resid, p, "C");
       add(u, p, diff(q, xg, xcb));
       atomput(atomid++, "CE", name[i], resid, u, "C");
-      lincomb(v, u, normalize(diff(q, xcb, xca)), B_CN);
+      sadd(v, u, normalize(diff(q, xcb, xca)), B_CN);
       atomput(atomid++, "NZ", name[i], resid, v, "N");
     } else if (itype == ARG) {
       GCHOOSE(xg, xcg2, xcg1, xcg2, xcg3);
       atomput(atomid++, "CG", name[i], resid, xg, "C");
       add(p, xg, diff(q, xcb, xca));
       atomput(atomid++, "CD", name[i], resid, p, "C");
-      lincomb(u, p, normalize(diff(v, xg, xcb)), B_CN);
+      sadd(u, p, normalize(diff(v, xg, xcb)), B_CN);
       atomput(atomid++, "NE", name[i], resid, u, "N");
       normalize(cross(w, v, q)); /* w is x axis, v is y axis */
       add(u, u, lincomb2(p, w, v, c30*B_CN, s30*B_CN));
       atomput(atomid++, "CZ", name[i], resid, u, "C");
       add(q, u, lincomb2(p, w, v, c30*B_CN, -s30*B_CN));
       atomput(atomid++, "NH1", name[i], resid, q, "N");
-      lincomb(p, u, v, B_CN);
+      sadd(p, u, v, B_CN);
       atomput(atomid++, "NH2", name[i], resid, p, "N");
     } else if (itype == MET) {
       GCHOOSE(xg, xcg1, xcg1, xcg2, xcg3);
@@ -785,9 +785,9 @@ int main(int argc, char *argv[])
       /* the position is not right,
        * SN bond is significantly longer than CN bond,
        * so the angle is wrong, but we don't take that into account */
-      lincomb(p, xg, normalize(diff(q, xcb, xca)), B_CS);
+      sadd(p, xg, normalize(diff(q, xcb, xca)), B_CS);
       atomput(atomid++, "SD", name[i], resid, p, "S");
-      lincomb(u, p,  normalize(diff(q, xg,  xcb)), B_CS);
+      sadd(u, p,  normalize(diff(q, xg,  xcb)), B_CS);
       atomput(atomid++, "CE", name[i], resid, u, "C");
     } else if (itype == PRO) {
       normalize(diff(u, xcb, xnp)); /* x axis */

@@ -466,10 +466,10 @@ def mkpdb(seq, angs, ter, start0, gmxver):
 
     # position of C
     dir_cac = [c1 * cp, c1 * sp, s1] # dir_cac is from CA to C
-    xc = rv3.lincomb(xca, dir_cac, B_CAC)
+    xc = rv3.sadd(xca, dir_cac, B_CAC)
 
     # position of O
-    xo = rv3.lincomb(xc, [-sr * cp, -sr * sp, cr], B_CO * sgn)
+    xo = rv3.sadd(xc, [-sr * cp, -sr * sp, cr], B_CO * sgn)
 
     if i > 0:
       # position of CB
@@ -480,36 +480,36 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       p = rv3.normalize(rv3.diff(dir_nca, dir_cac))
       q = rv3.normalize(rv3.cross(dir_cac, dir_nca))
       w = rv3.normalize(rv3.lincomb2(p, q, c3, s3)) # CA->CB
-      xcb = rv3.lincomb(xca, w, B_CC)
+      xcb = rv3.sadd(xca, w, B_CC)
 
       # compute the three CG positions
       # G1 position, opposite to C in the C=O group
       # viewed along the direction of CB-CA
       u = rv3.normalize( rv3.diff(xca, xc) )
-      xog1 = rv3.lincomb(xcb, u, B_CO)
-      xcg1 = rv3.lincomb(xcb, u, B_CC)
+      xog1 = rv3.sadd(xcb, u, B_CO)
+      xcg1 = rv3.sadd(xcb, u, B_CC)
       # G2 position, opposite to N in the N-H group
       v = rv3.normalize( rv3.diff(xca, xn) )
-      xog2 = rv3.lincomb(xcb, v, B_CO)
-      xcg2 = rv3.lincomb(xcb, v, B_CC)
+      xog2 = rv3.sadd(xcb, v, B_CO)
+      xcg2 = rv3.sadd(xcb, v, B_CC)
       # G3 position, p, q and u are perpendicular to w
       p = rv3.perpen(u, w)
       q = rv3.perpen(v, w)
       u = rv3.add(p, q)
       # v is the direction of CB->CG3
       v = rv3.normalize( rv3.lincomb2(u, w, -1., 1./3) )
-      xog3 = rv3.lincomb(xcb, v, B_CO)
-      xcg3 = rv3.lincomb(xcb, v, B_CC)
+      xog3 = rv3.sadd(xcb, v, B_CO)
+      xcg3 = rv3.sadd(xcb, v, B_CC)
     else: # CB and CG atoms for the 0th residue, ACE or None
       xcb = None
       xog1 = xog2 = xog3 = xcg1 = xcg2 = xcg3 = None
 
     xnp = xn[:]
-    xn = rv3.lincomb(xc, [c2 * cp, c2 * sp, s2], B_CN_PEP)
+    xn = rv3.sadd(xc, [c2 * cp, c2 * sp, s2], B_CN_PEP)
     dir_nca = dir_cac[:]
 
     # set the origin for the next CA
-    os = rv3.lincomb(xn, dir_nca, B_NCA)
+    os = rv3.sadd(xn, dir_nca, B_NCA)
 
     xyang += swgang * sgn  # flip around the circle
     cp, sp = cos(xyang), sin(xyang)
@@ -528,7 +528,7 @@ def mkpdb(seq, angs, ter, start0, gmxver):
         atomls.append( ["OC1", resid, xo] )
         u = rv3.normalize( rv3.diff(xc, xo) )
         v = rv3.normalize( rv3.diff(xc, xca) )
-        p = rv3.lincomb(xc, rv3.add(u, v), B_CO)
+        p = rv3.sadd(xc, rv3.add(u, v), B_CO)
         atomls.append( ["OC2", resid, p] )
       else:
         atomls.append( ["O", resid, xo] )
@@ -563,12 +563,12 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       q = rv3.diff(xcb, xca)
       xd1 = rv3.add(xg, q)
       u = rv3.diff(xg, xcb)
-      v = rv3.lincomb(q, u, -1./3)
-      xdc = rv3.lincomb(xg, u, 1./3) # center of xd1, xd2, xd3
+      v = rv3.sadd(q, u, -1./3)
+      xdc = rv3.sadd(xg, u, 1./3) # center of xd1, xd2, xd3
       # reversely extend away from v, center of xd2 and xd3
-      xd23 = rv3.lincomb(xdc, v, -1./2)
+      xd23 = rv3.sadd(xdc, v, -1./2)
       w = rv3.normalize(rv3.cross(q, u))
-      xd2 = rv3.lincomb(xd23, w, sqrt(2./3) * B_CC)
+      xd2 = rv3.sadd(xd23, w, sqrt(2./3) * B_CC)
 
       atomls.append( ["CG",  resid, xg] )
       atomls.append( ["CD1", resid, xd1] )
@@ -588,14 +588,14 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       u = rv3.normalize( rv3.cross(v, rv3.diff(xca, xcb) ) )
       if xg == xcg2: u = rv3.neg(u)
       x8 = [[0,0,0],] * 8
-      x8[0] = rv3.lincomb(xg,    rv3.lincomb2(u, v,  c36,  s36), B_CC_RING) # CD1
-      x8[1] = rv3.lincomb(xg,    rv3.lincomb2(u, v, -c36,  s36), B_CC_RING) # CD2
-      x8[2] = rv3.lincomb(x8[0], rv3.lincomb2(u, v, -c72,  s72), B_CC_RING) # NE1
-      x8[3] = rv3.lincomb(x8[1], rv3.lincomb2(u, v,  c72,  s72), B_CC_RING) # CE2
-      x8[4] = rv3.lincomb(x8[1], rv3.lincomb2(u, v, -c12, -s12), B_CC_RING) # CE3
-      x8[5] = rv3.lincomb(x8[3], rv3.lincomb2(u, v, -c72,  s72), B_CC_RING) # CZ2
-      x8[7] = rv3.lincomb(x8[5], rv3.lincomb2(u, v, -c12, -s12), B_CC_RING) # CH2
-      x8[6] = rv3.lincomb(x8[7], rv3.lincomb2(u, v, -c72, -s72), B_CC_RING) # CZ3
+      x8[0] = rv3.sadd(xg,    rv3.lincomb2(u, v,  c36,  s36), B_CC_RING) # CD1
+      x8[1] = rv3.sadd(xg,    rv3.lincomb2(u, v, -c36,  s36), B_CC_RING) # CD2
+      x8[2] = rv3.sadd(x8[0], rv3.lincomb2(u, v, -c72,  s72), B_CC_RING) # NE1
+      x8[3] = rv3.sadd(x8[1], rv3.lincomb2(u, v,  c72,  s72), B_CC_RING) # CE2
+      x8[4] = rv3.sadd(x8[1], rv3.lincomb2(u, v, -c12, -s12), B_CC_RING) # CE3
+      x8[5] = rv3.sadd(x8[3], rv3.lincomb2(u, v, -c72,  s72), B_CC_RING) # CZ2
+      x8[7] = rv3.sadd(x8[5], rv3.lincomb2(u, v, -c12, -s12), B_CC_RING) # CH2
+      x8[6] = rv3.sadd(x8[7], rv3.lincomb2(u, v, -c72, -s72), B_CC_RING) # CZ3
       at8 = ["CD1", "CD2", "NE1", "CE2", "CE3", "CZ2", "CZ3", "CH2"]
       atomls.append( ["CG", resid, xg] )
       for k in range(8):
@@ -620,11 +620,11 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       v = rv3.normalize( rv3.diff(xg, xcb) )
       w = rv3.normalize( rv3.cross(rv3.diff(xcb, xca), v) )
       xd1 = rv3.add(xg, rv3.lincomb2(v, w, s30 * B_CC_RING, c30 * B_CC_RING))
-      xe1 = rv3.lincomb(xd1, v, B_CC_RING)
-      xz = rv3.lincomb(xg, v, 2 * B_CC_RING)
-      xh = rv3.lincomb(xz, v, B_CO)
+      xe1 = rv3.sadd(xd1, v, B_CC_RING)
+      xz = rv3.sadd(xg, v, 2 * B_CC_RING)
+      xh = rv3.sadd(xz, v, B_CO)
       xd2 = rv3.add(xg, rv3.lincomb2(v, w, s30 * B_CC_RING, -c30 * B_CC_RING))
-      xe2 = rv3.lincomb(xd2, v, B_CC_RING)
+      xe2 = rv3.sadd(xd2, v, B_CC_RING)
 
       atomls.append( ["CG",  resid, xg] )
       atomls.append( ["CD1", resid, xd1] )
@@ -646,8 +646,8 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       xcd = rv3.add(xg, v)
       v = rv3.normalize(v)
       u = rv3.normalize( rv3.cross(v, rv3.diff(xcb, xg)) )
-      xe1 = rv3.lincomb(xcd, rv3.lincomb2(u, v, c30, s30), B_CO)
-      xe2 = rv3.lincomb(xcd, rv3.lincomb2(u, v, -c30, s30), B_CO)
+      xe1 = rv3.sadd(xcd, rv3.lincomb2(u, v, c30, s30), B_CO)
+      xe2 = rv3.sadd(xcd, rv3.lincomb2(u, v, -c30, s30), B_CO)
       nme2 = "NE2"
       if resnm == "GLU": nme2 = "OE2"
       atomls.append( ["CG", resid, xg] )
@@ -659,8 +659,8 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       xg = GCHOOSE(xcg1, xcg1, xcg2, xcg3)
       v = rv3.normalize(rv3.diff(xg, xcb))
       u = rv3.perpen(rv3.diff(xca, xcb), v)
-      xd1 = rv3.lincomb(xg, rv3.lincomb2(u, v,  c30, s30), B_CO)
-      xd2 = rv3.lincomb(xg, rv3.lincomb2(u, v, -c30, s30), B_CO)
+      xd1 = rv3.sadd(xg, rv3.lincomb2(u, v,  c30, s30), B_CO)
+      xd2 = rv3.sadd(xg, rv3.lincomb2(u, v, -c30, s30), B_CO)
       nmd2 = "ND2"
       if resnm == "ASP": nmd2 = "OD2"
       atomls.append( ["CG",  resid, xg] )
@@ -671,7 +671,7 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       xg = GCHOOSE(xcg2, xcg1, xcg2, xcg3)
       xd = rv3.add(xg, rv3.diff(xcb, xca))
       xe = rv3.add(xd, rv3.diff(xg, xcb))
-      xz = rv3.lincomb(xe, rv3.normalize(rv3.diff(xcb, xca)), B_CN)
+      xz = rv3.sadd(xe, rv3.normalize(rv3.diff(xcb, xca)), B_CN)
       atomls.append( ["CG", resid, xg] )
       atomls.append( ["CD", resid, xd] )
       atomls.append( ["CE", resid, xe] )
@@ -682,11 +682,11 @@ def mkpdb(seq, angs, ter, start0, gmxver):
       q = rv3.diff(xcb, xca)
       xd = rv3.add(xg, q)
       v = rv3.normalize(rv3.diff(xg, xcb))
-      xe = rv3.lincomb(xd, v, B_CN)
+      xe = rv3.sadd(xd, v, B_CN)
       w = rv3.normalize( rv3.cross(v, q) )
       xz = rv3.add(xe, rv3.lincomb2(w, v, c30 * B_CN, s30 * B_CN))
       xh1 = rv3.add(xz, rv3.lincomb2(w, v, c30 * B_CN, -s30 * B_CN))
-      xh2 = rv3.lincomb(xz, v, B_CN)
+      xh2 = rv3.sadd(xz, v, B_CN)
       atomls.append( ["CG", resid, xg] )
       atomls.append( ["CD", resid, xd] )
       atomls.append( ["NE", resid, xe] )
@@ -696,8 +696,8 @@ def mkpdb(seq, angs, ter, start0, gmxver):
 
     elif resnm == "MET":
       xg = GCHOOSE(xcg1, xcg1, xcg2, xcg3)
-      xd = rv3.lincomb(xg, rv3.normalize(rv3.diff(xcb, xca)), B_CS)
-      xe = rv3.lincomb(xd, rv3.normalize(rv3.diff(xg,  xcb)), B_CS)
+      xd = rv3.sadd(xg, rv3.normalize(rv3.diff(xcb, xca)), B_CS)
+      xe = rv3.sadd(xd, rv3.normalize(rv3.diff(xg,  xcb)), B_CS)
       atomls.append( ["CG", resid, xg] )
       atomls.append( ["SD", resid, xd] )
       atomls.append( ["CE", resid, xe] )
