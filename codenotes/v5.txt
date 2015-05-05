@@ -1,0 +1,57 @@
+
+
+Single executable
+==================
+
+All tools are merged to a single executable, gmx.
+So
+```
+editconf
+```
+now becomes
+```
+gmx editconf
+```
+
+The real main function is in src/programs/gmx.cpp.
+
+All executables, such as `editconf` and `mdrun`, are now modules
+that are added in `src/programs/legacymodules.cpp`.
+
+For example, in the function `registerLegacyModules(&manager)`
+```
+registerModule(manager, &gmx_mdrun, "mdrun", "...");
+```
+enables `gmx mdrun`, which will call `gmx_mdrun(argc, argv)`,
+which is defined in `src/programs/mdrun/mdrun.cpp`.
+
+The sources of the modules distributed in
+
+* `src/gromacs/gmxana`:         editconf, gmx_rms, gmx_wham, ...
+
+* `src/gromacs/gmxpreprocess`:  pdb2gmx, grompp, solvate, ...
+
+* `src/programs/mdrun`          mdrun, ...
+
+
+
+Trajectory anaylsis tools
+==========================
+
+
+The simplest and relatively self-contained tool is probably `gmx_morph`
+whose source code is `src/gromacs/gmx_morph.c`.
+
+
+
+Separate mdrun
+==============
+
+However, mdrun can be compiled as a separate executable
+as is done by src/programs/mdrun_main.cpp
+
+
+int main(int argc, char *argv[])
+{
+    return gmx::CommandLineModuleManager::runAsMainCMain(argc, argv, &gmx_mdrun);
+}

@@ -1,3 +1,9 @@
+build v5+ (cmake)
+=================
+sudo apt-get install libblas-dev
+sudo apt-get install liblapack-dev
+
+
 build v4.6 (cmake)
 ===================
 cd gromacs

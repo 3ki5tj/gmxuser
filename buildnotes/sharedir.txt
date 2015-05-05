@@ -1,4 +1,4 @@
-Diable making the shared directory
+Disable making the shared directory
 ===================================
 
 The purpose is to always synchronize the /share directory
