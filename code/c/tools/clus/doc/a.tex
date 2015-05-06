@@ -1,0 +1,65 @@
+\documentclass{article}
+\usepackage{amsmath}
+\begin{document}
+\begin{align*}
+E &= \frac12 W \sum_c (f_c \overline d_c + \mu) \\
+  &= \frac12 \sum_c \left(
+              \frac{\sum_{i, j \in c} w_i w_j d_{i j} }
+             {\sum_{i\in c} w_i} + W \mu
+             \right), \\
+  &= \sum_c \left(
+            \frac{\sum_{i \ne j, i, j \in c} w_i w_j d_{i j} }
+             {\sum_{i\in c} w_i} + \mu^*
+             \right),
+\end{align*}
+where $W = \sum w_i$ is the total weight of the system,
+$f_c = \sum_{i \in c} w_i / W $ is the faction of points in cluster $c$,
+$\mu^* = \frac12 W \mu$.
+In the last line we have used the fact that $d_{ij} = d_{ji}$
+
+
+The energy change due to removing a point $k$ from a cluster $c$ of more than one point.
+\begin{align*}
+\Delta E &=
+ \frac{\sum_{i < j; i, j \in c/\{k\}} w_i w_j d_{i j} }
+             {\sum_{i \in c/\{k\}} w_i}
+-
+ \frac{\sum_{i < j; i, j \in c} w_i w_j d_{i j} }
+             {\sum_{i \in c} w_i} \\
+&=
+ \frac{\sum_{i < j; i, j \in c/\{k\}} w_i w_j d_{i j} }
+             {\sum_{i \in c/\{k\}} w_i}
+-
+ \frac{\sum_{i < j; i, j \in c/\{k\}} w_i w_j d_{i j}}
+             {\sum_{i \in c} w_i}
+-
+ w_k \frac{\sum_{i \in c/\{k\}} w_i d_{i k}}
+             {\sum_{i \in c} w_i} \\
+&=
+ \frac{ \sum_{i < j; i, j \in c/\{k\}} w_i w_j d_{i j} }
+             { \sum_{i \in c/\{k\}} w_i }
+ \frac{w_k} { \sum_{i \in c} w_i}
+-
+ w_k \frac{\sum_{i \in c/\{k\}} w_i d_{i k}}
+             {\sum_{i \in c} w_i}
+\end{align*}
+
+We wish to see if the quantity is negative, assume we have $n+1$ points in the cluster have the unit weight,
+\begin{align*}
+\Delta E
+&= \frac {n(n-1)/2}{n\times (n+1)} \overline {d_c}
+         - \frac {n}{n+1}\overline {d_k} \\
+&= \frac{n-1}{2(n+1)} \overline {d_c}
+ - \frac{n}{n+1} \overline {d_k}
+\approx \frac { \overline {d_c} }{2}
+ - \overline d_k
+\end{align*}
+For a homogeneous graph, the energy change is equal to $-\overline d/2$,
+thus it gives an ideal chemical potential $\mu^*$ to be half of the admissible
+distance.
+
+For a point with a smaller weight, $\Delta E$ is also smaller,
+thus the penalty of creating a separate cluster increases.
+
+\end{document}
+

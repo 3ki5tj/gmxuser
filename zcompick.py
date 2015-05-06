@@ -1,1 +1,0 @@
-zcom/zcompick.py

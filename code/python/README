@@ -1,0 +1,13 @@
+Python programs for GROMACS
+============================
+
+Files and subdirectories
+-------------------------
+* util            utility library
+* mkspx.py        make a large spiral for the initial state
+* simulpdb.py     prepare an MD simulation from a PDB file
+* gmxspdr         GMXSpider program
+* oldtools        old scripts
+
+
+
