@@ -41,7 +41,7 @@ Functions
 snew(oenv, 1);
 
 output_env_init(oenv, argc, argv);
-    + copies the command line
+    + copy the command line
     + called by parse_common_args() in statutil.c
 
 output_env_done(oenv);

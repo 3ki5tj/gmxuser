@@ -1,0 +1,25 @@
+Overview
+=========
+
+Based on version 5 and above
+
+
+Source files
+============
+
+src/gromacs/commandline/pargs.h
+src/gromacs/commandline/pargs.cpp
+
+
+
+Functions
+=========
+
+```
+parse_common_args(argc, argv, flags,
+                  nfile, fnm,
+                  npargs, pa,
+                  ndesc, desc,
+                  nbugs, bugs
+                  oenv);
+```

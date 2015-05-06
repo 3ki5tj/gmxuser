@@ -42,6 +42,9 @@ Trajectory anaylsis tools
 The simplest and relatively self-contained tool is probably `gmx_morph`
 whose source code is `src/gromacs/gmx_morph.c`.
 
+Another example is `gmx_gyrate`,
+whose source code is `src/gromacs/gmx_gyrate.c`.
+
 
 
 Separate mdrun

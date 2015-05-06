@@ -11,6 +11,7 @@ notes:  installation notes,
 gromacs3:   gromacs 3.3.4, unzipped, nonofficial git directory
 gromacs4:   gromacs 4.0-patches (4.0.7+), official git directory
 gromacs4.5: gromacs 4.5-patches (4.5.7+), official git directory
+gromacs4.6: gromacs 4.6-patches (4.6.7+), official git directory
 gromacs:    gromacs master, official git directory
 
 fftw:       FFTW source code and compiled libraries

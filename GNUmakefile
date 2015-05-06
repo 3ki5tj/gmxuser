@@ -1,5 +1,5 @@
 zipfile = gmxcode.zip
-usbdir = /media/C3/code
+usbdir = /media/`whoami`/C3/code
 
 #subdirs = at4 deploy gmx4 gmx45 codenotes buildnotes spider util
 subdirs =
