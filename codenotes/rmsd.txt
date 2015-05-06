@@ -1,0 +1,9 @@
+Root-mean-square deviation
+==========================
+
+
+gromacs/math/do_fit.h
+
+`rmsd = rmsdev(natoms, mass, xref, x);`
+or
+`rmsd = rmsdev_ind(nind, index, mass, xref, x);`

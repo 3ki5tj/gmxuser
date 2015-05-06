@@ -1,0 +1,24 @@
+Overview
+========
+
+Weighted histogram analysis method
+
+Source code: src/gromacs/gmxana/gmx_wham.cpp
+
+
+
+Features
+========
+
+
+Autocorrelation time
+---------------------
+
+Turned on by the option `-ac`.
+
+### Relevant variables ###
+
+* opt->bCalcTauInt
+* window->ztime
+
+

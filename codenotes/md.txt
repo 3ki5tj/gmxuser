@@ -1,6 +1,16 @@
- md.c/do_md() function
+Source code
+===========
+This note applies to one of the following file
+  * programs/mdrun/md.cpp (v5.1 or later)
+  * programs/mdrun/md.c (v5.0)
+  * kernel/md.c (v4.6 or earlier)
+
+
+
+do_md() function
 =======================
-  * main MD loop on lines 693-1889 (v4.5):  ``while (!bLastStep ...) {''
+* main MD loop: ``while (!bLastStep ...) {''
+  * on lines 693-1889 (v4.5).
 
 
 
@@ -31,14 +41,14 @@ state
 
 
 
-`top_global'
+`top_global`
 --------------
 
 used to create
-  `top_global' --> `top'
+  `top_global` --> `top`
 
 
-`top_global' is used in
+`top_global` is used in
 
   init_md(top_global);
   init_enerdata(top_global);
@@ -47,7 +57,7 @@ used to create
   compute_globals(top_global)
 
 
-`top' is used in
+`top` is used in
 
   dd_partition_system(top);
   set_constraints(top);               before main loop
@@ -55,4 +65,12 @@ used to create
   update_coords(&top->idef);
   update_costrains(&top->idef);
 
+
+
+
+reset_all_counters() function
+=============================
+* static function
+* reset `wcycle` properties
+* set `step_rel` to 0.
 

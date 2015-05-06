@@ -1,11 +1,15 @@
 #!/usr/bin/env python
 
+
+
 '''
 build a self-contained C file as a GROMACS engine
 basically it grabs several key files from the GROMACS source tree and
 writes an output `mdfoo.c' based on an optional input template `foo.h'
 details can be found in the function usage(), or run the script with `-h'
 '''
+
+
 
 import re, sys, os, glob, getopt
 from ccgmx import CCGMX
@@ -299,11 +303,5 @@ def main():
 
 
 if __name__ == "__main__":
-  # try to accelerate the process
-  try:
-    import psyco
-    psyco.full()
-  except ImportError: pass
-
   main()
 

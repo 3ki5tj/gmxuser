@@ -28,7 +28,9 @@ def setsrcroot(root, child = None):
       which is presumably the current directory '''
   global gmxsrcroot, gmxver, gmxisver4, gmxsopenmm
 
-  if root: root = os.path.expanduser(root)
+  if root:
+    root = os.path.expanduser(root)
+
   if not root or not os.path.exists(root):
     # guess the GROMACS root from the current directory
     if child == None: child = os.getcwd()
@@ -72,8 +74,28 @@ def version():
   root = srcroot()
   cfgac = os.path.join(root, "configure.ac")
   cmake = os.path.join(root, "CMakeLists.txt")
+  vinfo = os.path.join(root, "cmake", "gmxVersionInfo.cmake")
 
-  if os.path.exists(cmake): # version 4.5 or later
+  if os.path.exists(vinfo): # version 5.1
+    # we look for GMX_VERSION_MAJOR, GMX_VERSION_MINOR, and GMX_VERSION_PATCH
+    myver = 0
+    for s in open(vinfo):
+      m = re.search(r'\(GMX_VERSION_MAJOR\s+(.*?)\)', s.strip())
+      if m:
+        myver += int( m.group(1) ) * 10000
+        continue
+
+      m = re.search(r'\(GMX_VERSION_MINOR\s+(.*?)\)', s.strip())
+      if m:
+        myver += int( m.group(1) ) * 100
+        continue
+
+      m = re.search(r'\(GMX_VERSION_PATCH\s+(.*?)\)', s.strip())
+      if m:
+        myver += int( m.group(1) )
+        continue
+
+  elif os.path.exists(cmake): # version 4.5 to 5.0
     for s in open(cmake):
       # we look for a line that looks like
       # set(PROJECT_VERSION "4.5.6-dev")

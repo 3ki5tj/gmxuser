@@ -1,1 +1,1 @@
-../../zcom/cspacer/cspacer.py
+../../../../common/python/cspacer/cspacer.py
