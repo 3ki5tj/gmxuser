@@ -1,11 +1,16 @@
 #!/usr/bin/env python
 
+
+
 ''' prepare a system for MD simulation from a pdb for GROMACS 4.0/4.5
-    Copyright (c) 2010-2013, Cheng Zhang '''
+    Copyright (c) 2010-2015, Cheng Zhang '''
+
+
 
 import sys, os, subprocess, getopt, shutil, re, random, glob, math
 import zcom
 import gmxcom
+
 
 
 d2g = math.pi/180   # degree to radian
@@ -34,8 +39,7 @@ def usage():
     %s [OPTIONS] input.pdb""" % sys.argv[0]
 
   print """
-  prepare a system for GROMACS MD simulation from a .pdb file
-  Copyright (c) 2010-2013, Cheng Zhang
+  prepare a system for GROMACS MD simulation from a PDB file
 
   OPTIONS:
     -o              followed by output .gro file
@@ -65,7 +69,7 @@ def usage():
     --verbose=      set verbocity
     -h, --help      help
 
-  Note, for GROMACS 4.0.x, the input .pdb must go through `amberize' first
+  Note, for GROMACS 4.0.x, the input PDB file must go through `amberize' first
   """
   exit(1)
 
@@ -183,7 +187,8 @@ def dosimul(fnpdb, fngro, ff, water, solvent, nmaxsol,
   capture = (verbose == 0) # if not verbose, we suppress the output
 
   # convert `fnpdb' to the absolute path, if it is a path
-  if os.path.exists(fnpdb): fnpdb = os.path.realpath(fnpdb)
+  if os.path.exists(fnpdb):
+    fnpdb = os.path.realpath(fnpdb)
 
   # create a working directory and switch into it
   if prepdir == None: prepdir = "prep"
@@ -342,7 +347,8 @@ def mkgro(fnpdb, boxsize, forcefield, sol, fntop):
   cmd = pdb2gmx + " -f " + fnpdb + " -o " + fngro + " -ff " + forcefield + " -ignh -p " + fntop
   if gmxver >= 40500:
     cmd +=  " -water " + sol
-  ret, out, err = zcom.runcmd(cmd, capture = 1)
+
+  ret, out, err = gmxshrun(cmd, capture = 1)
 
   # search for charge
   chargekey = "Total charge "
@@ -364,10 +370,9 @@ def mkgro(fnpdb, boxsize, forcefield, sol, fntop):
 
   # fit to a box
   boxgro = "box.gro"
-  ret = zcom.runcmd('echo 0 | ' +
-      editconf + " -princ -f " + fngro + " -o " + boxgro
-               + " -box " + str(boxsize) + " -bt dodec",
-      system = 1)
+  cmd = (editconf + " -princ -f " + fngro + " -o " + boxgro
+                  + " -box " + str(boxsize) + " -bt dodec")
+  ret, out, err = gmxshrun('echo 0 | ' + cmd)
   return boxgro, q
 
 
@@ -405,15 +410,16 @@ def addwater(boxgro, charge, nmaxsol, fntop, capture):
       opt = " -np %d " % (-charge)
       if gmxver < 40500: opt += " -pname Na "
 
-    ret = gmxshrun(grompp + " -f em.mdp -o ion.tpr -c " + solgro,
+    ret = gmxshrun(grompp + " -f em.mdp -o ion.tpr -c " + solgro + " -maxwarn 5",
         capture)
 
     SOLgroup = 13
     if gmxver < 40500: SOLgroup = 12
 
-    ret = zcom.runcmd("echo %s | " % SOLgroup +
-        genion + " -s ion.tpr -o " + iongro + " -p " + fntop + opt,
-        system = 1)
+    cmd = ("echo %s | " % SOLgroup + genion + " -s ion.tpr -o " + iongro
+                                   + " -p " + fntop + opt)
+
+    ret, out, err = gmxshrun(cmd)
 
     if gmxver < 40500:
       # for GROMACS 4.0
@@ -455,7 +461,7 @@ def runmd(fningro, fnout, fnmdp, fntop, pd, capture):
     fnout = os.path.splitext(fnout)[0]
 
   ret = gmxshrun(grompp + " -v -f " + fnmdp + " -o " + fnout + ".tpr "
-                 + "-c " + fningro + " -p " + fntop,
+                 + "-c " + fningro + " -p " + fntop + " -maxwarn 5",
                  capture)
 
   print "\n\nRunning mdrun with %s, may take some time..." % fnout
@@ -485,7 +491,8 @@ def setuppaths(buildroot, srcroot):
   global gmxexe, gmxsrc, gmxtopdir, gmxver
   global mdrun, pdb2gmx, grompp, editconf, genbox, genion
 
-  if buildroot: buildroot = os.path.expanduser(buildroot)
+  if buildroot:
+    buildroot = os.path.expanduser(buildroot)
 
   # we prefer to use tools under a development tree
   # for they are more up-to-date, but if it is impossible
@@ -493,12 +500,22 @@ def setuppaths(buildroot, srcroot):
   if buildroot and os.path.exists(buildroot):
     gmxexe  = os.path.realpath(buildroot)
     print "setting the executable directory as", gmxexe
-    mdrun     = myfind("mdrun",     gmxexe)
-    pdb2gmx   = myfind("pdb2gmx",   gmxexe)
-    grompp    = myfind("grompp",    gmxexe)
-    editconf  = myfind("editconf",  gmxexe)
-    genbox    = myfind("genbox",    gmxexe)
-    genion    = myfind("genion",    gmxexe)
+    # locate the single executable `gmx`
+    gmxpath = os.path.join(gmxexe, "bin", "gmx")
+    if os.path.exists(gmxpath):
+      mdrun     = gmxpath + " mdrun"
+      pdb2gmx   = gmxpath + " pdb2gmx"
+      grompp    = gmxpath + " grompp"
+      editconf  = gmxpath + " editconf"
+      genbox    = gmxpath + " solvate"
+      genion    = gmxpath + " genion"
+    else:
+      mdrun     = myfind("mdrun",     gmxexe)
+      pdb2gmx   = myfind("pdb2gmx",   gmxexe)
+      grompp    = myfind("grompp",    gmxexe)
+      editconf  = myfind("editconf",  gmxexe)
+      genbox    = myfind("genbox",    gmxexe)
+      genion    = myfind("genion",    gmxexe)
 
   # gmxsrc and gmxtopdir are not necessary
   gmxsrc = gmxcom.setsrcroot(srcroot)
@@ -530,8 +547,13 @@ def mkmdmdp(nsteps, charge, solvent = None,
       if `charge' is not an integer, we use both ions
       `solvent' can be "implicit" or "explicit" '''
 
+  global gmxver
+
   d = {}
   for k in params: d[k] = params[k]
+
+  if gmxver >= 50000:
+    d["cutoff-scheme"] = "group"
 
   if solvent == "implicit":
     d["implicit_solvent"] = "GBSA"
@@ -557,7 +579,6 @@ def mkmdmdp(nsteps, charge, solvent = None,
   elif solvent == "explicit":
     # handle charges
     Na, Cl = "NA", "CL"
-    global gmxver
     if gmxver < 40500:
       Na, Cl = "Na+", "Cl-"
     if charge > 0:
@@ -590,6 +611,9 @@ def mkemmdp(pd):
     "gen_vel" : "no",
     "coulombtype" : "Cut-off",
   }
+  global gmxver
+  if gmxver >= 50000:
+    d["cutoff-scheme"] = "group"
   if pd: d["ns_type"] = "simple"
   return gmxcom.mkmdp(d)
 

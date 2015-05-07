@@ -14,8 +14,8 @@ Overview
 git
 ----
 cd ~/work/gmx
-git clone git://git.gromacs.org/gromacs.git gromacs45
-git checkout release-4-5-patches
+git clone git://git.gromacs.org/gromacs.git gromacs4.0
+git checkout release-4-0-patches
 
 
 

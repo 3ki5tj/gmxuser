@@ -9,8 +9,3 @@ Files
 =====
 
 simulpdb.py
-
-mkspx.py
-  |
-  +-- rv3.py
-

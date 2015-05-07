@@ -1,5 +1,5 @@
 /* multiple-bin estimator for dihedral angle
- * Copyright (C) 2010 Cheng Zhang */
+ * Copyright (C) 2010-2015 Cheng Zhang */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -121,14 +121,14 @@ static spbonds_t *spbinit(void)
   if (use_atcfg) {
     cfgdata_t *cfg;
 
-    if ((cfg = cfgopen(atcfg)) == NULL) {
+    if ((cfg = cfg_open(atcfg)) == NULL) {
       fprintf(stderr, "cannot read config %s.", atcfg);
       return NULL;
     }
     if (spbs_cfgopen_low(bs, cfg, NULL) != 0) {
       return NULL;
     }
-    cfgclose(cfg);
+    cfg_close(cfg);
 
     read_flags |= SPB_VERIFY;
     fprintf(stderr, "configuration file %s is used\n", atcfg);

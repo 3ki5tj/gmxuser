@@ -1,10 +1,10 @@
-Gromacs 4.6
+Gromacs 5.0
 =============================
 
 Overview
 =========
  *  structure change (src/kernel --> src/programs/mdrun)
- *  start to use C++ code
+ *  C++ code
  *  no autotools
 
 
@@ -12,11 +12,11 @@ Overview
 git
 ----
 cd ~/work/gmx
-git clone git://git.gromacs.org/gromacs.git gromacs46
-git checkout release-4-6
+git clone git://git.gromacs.org/gromacs.git gromacs5.0
+git checkout release-5-0
 
 
-build v4.6 (float, shared, 32-bit)
+build v5.0 (float, shared, 32-bit)
 -----------------------------------
 build fftw first (see build.txt)
 

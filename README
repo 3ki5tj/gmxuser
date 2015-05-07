@@ -5,18 +5,3 @@ Files and Directories
 * codenotes         GROMACS code analyses
 * buildnotes        notes on how to make GROMACS
 
-
-
-Parent directories
-===================
-../gromacs3:   gromacs 3.3.4, unzipped, nonofficial git directory
-../gromacs4:   gromacs 4.0-patches (4.0.7+), official git directory
-../gromacs4.5: gromacs 4.5-patches (4.5.7+), official git directory
-../gromacs4.6: gromacs 4.6-release (4.6.7+), official git directory
-../gromacs5.0: gromacs 5.0-release (5.0.4+), official git directory
-../gromacs:    gromacs master (5.1+), official git directory
-
-../fftw:       FFTW source code and compiled libraries
-
-
-

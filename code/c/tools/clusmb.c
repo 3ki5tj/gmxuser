@@ -328,7 +328,7 @@ static float **calcrmsmat(xmovie_t *xmov)
       do_fit(nat, vmass, x2, x1b);
       mat[i][j] = rmsdev(nat, vmass, x2, x1b);
 */
-      mat[i][j] = rv3_rmsd(x1, NULL, x2, vmass, nat, NULL, NULL);
+      mat[i][j] = rv3_rmsd(x1, NULL, x2, vmass, nat, 0, NULL, NULL);
       if (++np % 1000 == 0)
         printf("computing rmsd for %d, %d %d/%d = %g%%; \r", i, j, np, npr, 100.0*np/npr);
     }

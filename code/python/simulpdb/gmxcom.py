@@ -1,1 +1,1 @@
-../gmxcom.py
+../util/gmxcom.py

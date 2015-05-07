@@ -200,7 +200,7 @@ static int dotrj(hist_t *hsrms, bb_t *bb, int rescnt, FILE *fplog,
     xgetbb(xbb, x, bb, rescnt);
 
     /* fit x to xref */
-    rmsd = rv3_rmsd(xbb, NULL, xrefbb, vmass, rescnt*3, NULL, NULL);
+    rmsd = rv3_rmsd(xbb, NULL, xrefbb, vmass, rescnt*3, 0, NULL, NULL);
 
     if (fplog) {
       fprintf(fplog, "%10.0f %8.4f %g %d\n", t, rmsd, w, trj->fr[trj->pos].dataid);

@@ -1,0 +1,29 @@
+Test directory for the protein villin headpiece: 1VII
+
+
+To clean up
+```
+make clean
+```
+
+To test GROMACS 5.0
+```
+make v5.0
+```
+
+To test GROMACS 4.6
+```
+make v4.6
+```
+
+To test GROMACS 4.5
+```
+make v4.5
+```
+
+To test GROMACS 4.0
+```
+make v4.0
+```
+
+

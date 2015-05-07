@@ -94,6 +94,7 @@ def version():
       if m:
         myver += int( m.group(1) )
         continue
+    gmxver = myver
 
   elif os.path.exists(cmake): # version 4.5 to 5.0
     for s in open(cmake):
@@ -131,6 +132,7 @@ def version():
   else:  # there is neither CMakeLists.txt nor configure.ac
     raise Exception
 
+  print gmxver
   return gmxver
 
 

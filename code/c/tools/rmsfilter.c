@@ -284,9 +284,9 @@ static int dotrj(bb_t *bb, int rescnt, trj_t *trj, const char *fxtc,
       fr->w = w;
       fr->dataid = trj->fr[trj->pos].dataid;
       fr->fn = fxtc_copy;
-      /* copy coordinates of 3xrescnt backbone atoms */
+      /* copy coordinates of 3 x rescnt backbone atoms */
       xgetbb(fr->x, x, bb, xmov->nat / 3);
-      fr->rmsd = rv3_rmsd(fr->x, NULL, xrefbb, vmass, xmov->nat, NULL, NULL);
+      fr->rmsd = rv3_rmsd(fr->x, NULL, xrefbb, vmass, xmov->nat, 0, NULL, NULL);
 
       /* check if the rmsd is in range */
       if (fr->rmsd >= rmsd_min && fr->rmsd <= rmsd_max) {
@@ -330,7 +330,7 @@ static float **calcrmsmat(xmovie_t *xmov)
     x1 = xmov->fr[i].x;
     for (j = i+1; j < nfr; j++) {
       x2 = xmov->fr[j].x;
-      mat[i][j] = rv3_rmsd(x1, NULL, x2, vmass, nat, NULL, NULL);
+      mat[i][j] = rv3_rmsd(x1, NULL, x2, vmass, nat, 0, NULL, NULL);
       if (++np % 1000 == 0)
         printf("computing rmsd for %d, %d %d/%d = %g%%; \r", i, j, np, npr, 100.0*np/npr);
     }

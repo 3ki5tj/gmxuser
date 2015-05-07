@@ -38,7 +38,7 @@ Notes:
  *  `make VERBOSE=1'  to produce more detailed compiling log
 
 The executables are under
-$HOME/work/gmx/gromacs45/buildgcc32/src/kernel
+$HOME/work/gmx/gromacs4.5/buildgcc32/src/kernel
 
 
 

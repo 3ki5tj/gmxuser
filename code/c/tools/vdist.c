@@ -433,7 +433,7 @@ int run(void)
   /* histograms */
   hs_vd = hs_open(2*nvd, -VDMAX, VDMAX, VDDEL); /* vdist */
   if (pro->ngrp >= 4)
-    hs2_vd = hs2_opensqr(pro->ngrp-3, -VDMAX, VDMAX, VDDEL);
+    hs2_vd = hs2_open(pro->ngrp-3, -VDMAX, VDMAX, VDDEL, -VDMAX, VDMAX, VDDEL);
   hs_pd = hs_open(pro->ngg, 0., PDMAX, PDDEL); /* pair dist */
   hs_pg = hs_open(pro->ngg, 0., 180.0, 1.0); /* pair angle */
 

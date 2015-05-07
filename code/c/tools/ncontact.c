@@ -276,11 +276,11 @@ int run(void)
     return -1;
   }
   printf("%d groups, %d pairs, %d group atoms\n", pro->ngrp, pro->ngg, pro->ngat);
-  hs_ct = hs_open(1+pro->ngg, 0, CONTMAX, 1);
+  hs_ct = hs_open(1 + pro->ngg, 0, CONTMAX, 1);
   den->n = pro->ngat;
   den->wtot = 0.;
   den->vol = box[0][0]*box[1][1]*box[2][2];
-  hs_rdf = hs_openx(1, 0., RDFMAX, RDFDEL, rdfw, rdfr, rdfnorm);
+  hs_rdf = hs_open(1, 0., RDFMAX, RDFDEL);
 
   /* do database addition */
   if (fncont2 != NULL) {
@@ -330,7 +330,7 @@ int run(void)
   }
   hs_save(hs_ct, fncont, HIST_KEEPHIST|HIST_VERBOSE);
   hs_close(hs_ct);
-  hs_savex(hs_rdf, fnrdf, den, HIST_ADDAHALF|HIST_KEEPHIST);
+  hs_savex(hs_rdf, fnrdf, rdfw, rdfnorm, den, HIST_ADDAHALF|HIST_KEEPHIST);
   hs_close(hs_rdf);
   sfree(mtop);
   return 0;

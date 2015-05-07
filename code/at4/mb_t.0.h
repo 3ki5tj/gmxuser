@@ -91,7 +91,7 @@ typedef struct {
   double   boltz;       /* Boltzmann constant (given by user); $usr:cfg; */
 
   /* langevin equation */
-  double   (*grand)(void);   /* function pointer to a gaussian random number generator; $def: &grand0;  $io:none; */
+  double   (*grand)(void);   /* function pointer to a gaussian random number generator; $def: &randgaus;  $io:none; */
   double   lgv_dt;      /* time step for the temperature Langevin eq. $key: Tdt;  $def: 1e-5;  */
   double   lgv_dTmax;   /* maximal amount of temperature change in a step; $key: dTmax;  $def: 25.0;  */
   double   lgv_rej;     /* number of attempts of langevin equation trying to change beta too drastically;

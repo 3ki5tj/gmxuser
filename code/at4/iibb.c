@@ -56,14 +56,14 @@ static bbs_t *bbinit(void)
   if (use_atcfg) {
     cfg_t *cfg;
 
-    if ((cfg = cfgopen(atcfg)) == NULL) {
+    if ((cfg = cfg_open(atcfg)) == NULL) {
       fprintf(stderr, "cannot read config %s.", atcfg);
       return NULL;
     }
     if (bbs_cfgopen_low(bbs, cfg, NULL) != 0) {
       return NULL;
     }
-    cfgclose(cfg);
+    cfg_close(cfg);
 
     read_flags |= BB_VERIFY;
     fprintf(stderr, "configuration file %s is used\n", atcfg);
