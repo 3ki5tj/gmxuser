@@ -2,12 +2,12 @@
 test case 1VII.pdb
 ======================
 
-~/work/gmx/gromacs3/buildgcc/src/kernel/test
+~/work/gmx/gromacs3.3/buildgcc/src/kernel/test
 
 
 
 # generate the first prototype
-cd ~/work/gmx/gromacs3/buildgcc/src/kernel
+cd ~/work/gmx/gromacs3.3/buildgcc/src/kernel
 mkdir test && cd test
 ../pdb2gmx -f 1VII.pdb -o a.gro -p villin.top -ignh
 

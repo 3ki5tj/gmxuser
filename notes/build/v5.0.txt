@@ -1,23 +1,23 @@
 Gromacs 5.0
-=============================
+
 
 Overview
-=========
+========
  *  structure change (src/kernel --> src/programs/mdrun)
  *  C++ code
  *  no autotools
 
 
 
-git
-----
+Clone the git source
+====================
 cd ~/work/gmx
 git clone git://git.gromacs.org/gromacs.git gromacs5.0
 git checkout release-5-0
 
 
 build v5.0 (float, shared, 32-bit)
------------------------------------
+===================================
 build fftw first (see build.txt)
 
 mkdir buildgcc32 && cd buildgcc32

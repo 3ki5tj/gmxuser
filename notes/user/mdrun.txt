@@ -1,0 +1,3 @@
+-nt 3       set the total number of threads as 3
+-ntomp 4    set the number of OpenMP threads as 4
+

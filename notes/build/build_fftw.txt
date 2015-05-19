@@ -1,4 +1,3 @@
-==============
 building FFTW
 ==============
 
@@ -10,9 +9,20 @@ The FFTW source/build are put under gmx for convenience
 The install version is under
 $HOME/work/gmx/fftw/app
 
-To use in GROMACS
+
+Use FFTW in GROMACS
+===================
+
+
+Autotools
+----------
 export CPPFLAGS=-I$HOME/work/gmx/fftw/app/include
 export LDFLAGS=-L$HOME/work/gmx/fftw/app/lib
+
+CMake
+------
+-DCMAKE_INCLUDE_PATH=$HOME/work/gmx/fftw/app/include
+-DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app/lib
 
 
 list of common flags
