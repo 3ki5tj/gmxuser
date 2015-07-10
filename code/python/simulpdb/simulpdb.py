@@ -2,12 +2,12 @@
 
 
 
-''' prepare a system for MD simulation from a pdb for GROMACS 4.0/4.5
+''' prepare a system for MD simulation from a pdb for GROMACS 4.0-5.0
     Copyright (c) 2010-2015, Cheng Zhang '''
 
 
 
-import sys, os, subprocess, getopt, shutil, re, random, glob, math
+import sys, os, subprocess, getopt, shutil, re, glob, math
 import zcom
 import gmxcom
 

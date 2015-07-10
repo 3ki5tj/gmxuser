@@ -3,6 +3,7 @@ building FFTW
 
 For Gromacs 4.6, the option is avaiable
 -DGMX_BUILD_OWN_FFTW=ON
+So it is unnecessary to build FFTW manually.
 
 The FFTW source/build are put under gmx for convenience
 

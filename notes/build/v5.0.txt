@@ -27,3 +27,32 @@ cmake .. -DCMAKE_C_COMPILER=gcc \
   -DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app32/lib
 make
 
+
+Lonestar
+========
+
+Disable SSE4.1
+
+```
+mkdir buildicc && cd buildicc
+~/app/bin/cmake .. -DCMAKE_C_COMPILER=icc \
+  -DCMAKE_CXX_COMPILER=icpc \
+  -DCMAKE_INCLUDE_PATH=$HOME/work/gmx/fftw/app/include \
+  -DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app/lib \
+  -DGMX_SIMD=SSE2 \
+  -DGMX_GIT_VERSION_INFO=OFF
+make
+```
+
+regressiontest
+
+
+mkdir buildiccdbl && cd buildiccdbl
+~/app/bin/cmake .. -DCMAKE_C_COMPILER=icc \
+  -DCMAKE_CXX_COMPILER=icpc \
+  -DGMX_BUILD_OWN_FFTW=ON \
+  -DGMX_DOUBLE=ON \
+  -DGMX_SIMD=SSE2 \
+  -DGMX_GIT_VERSION_INFO=OFF
+make
+
