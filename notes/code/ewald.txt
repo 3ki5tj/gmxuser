@@ -1,0 +1,42 @@
+Ewald sum
+=========
+
+Source Files
+------------
+gromacs/mdlib/ewald.c
+gromacs/gmxlib/ewald_util.c
+
+
+
+Functions
+---------
+
+### do_ewald()
+
+The Fourier sum
+
+phi(k) = exp(-k^2/(4*sig^2))/k^2
+
+sig: ewaldcoeff (or fr->ewaldcoeff_q)
+
+larger sig: needs shorter real-space cutoff
+smaller sig: needs fewer k in need
+
+
+This function is called by `do_force_lowlevel()`
+defined in `force.c`
+
+
+
+### calc_ewaldcoeff_q()
+
+Compute `sig` such that
+```
+erfc(sig*rc) < tol
+```
+
+rc: `ir->rcoulomb`
+tol: `ir->ewald_rtol`
+
+The smaller `rc`, smaller `tol`, requires a larger `sig`.
+A larger `sig`, more `k` Fourier-space vectors is needed.

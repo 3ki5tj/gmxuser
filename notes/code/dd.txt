@@ -12,20 +12,81 @@ Overview
 
 Files
 ------
+
+### headers
+
+Headers are under the directory `gromacs/legacyheaders` from GROMACS 5.0
+
 types/commrec.h
+gmx_ga2la.h
+
+### source code
+
 mdlib/domdec.c
 mdlib/domdec_setup.c
 mdlib/domdec_top.c
 mdlib/domdec_con.c
 
 
+Structures
+----------
+
+The object `dd` is the structure `gmx_domdec_t`,
+defined in `types/commrec.h`.
+Note it is contained in `cr->dd`.
+
+```
+struct gmx_domdec_t {
+  MPI_Comm mpi_comm_all;
+  int rank;
+  /* global atom index to local index */
+  gmx_ga2la_t gala;
+}
+```
+
+```
+typedef struct gmx_ga2la {
+    gmx_bool      bAll; /* `laa` contains all atoms indices */
+    int           mod;
+    int           nalloc;
+    gmx_laa_t    *laa; /* global index, `gmx_laa_t`, useful when `bAll` is true */
+    gmx_lal_t    *lal; /* local index, `gmx_lal_t`, is the index */
+} t_gmx_ga2la, *gmx_ga2la_t;
+```
+
+
+
+
 Functions
 ----------
 
-dd_collect_vec_sendrecv(dd, lv, v);
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-collect values of `lv' at different nodes,
-save to the `v' on the master
+### b = ga2la_get(ga2la, a_gl, &a_loc, &cell);
+
+Compute the local index `a_loc` and cell id `cell` from the global index `a_gl`.
+If `cell == 0`, atom is contains in this cell.
+If `a_loc` is the local index.
+
+This search goes through a hash table by mod,
+so it should be quite fast in practice.
+
+
+
+### b = ga2la_get_home(ga2la, a_gl, &a_loc);
+
+Compute the local index `a_loc` from the global index `a_gl`.
+If `a_loc` is the local index.
+If cell != 0, return false.
+
+
+
+### dd_collect_vec_sendrecv(dd, lv, v);
+
+Collect values of the local vector `lv'
+at different nodes, save to the global
+vector `v' on the master.
+Note, however, only the master node has
+the complete vector in the end,
+the local vector only does the sending.
 
   if ( !DDMASTER(dd) ) {
     /* send to the master */
@@ -43,22 +104,44 @@ save to the `v' on the master
 
 
 
-dd_collect_vec(dd, state_local, lv, v);
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### dd_collect_vec(dd, state_local, lv, v);
+
+Collect local vector `lv` such that in the end
+the master node has the complete vector `v`.
+
     dd_collect_cg(dd, state_local);
     dd_collect_vec_sendrecv(dd, lv, v);
   or
     dd_collect_vec_gatherv(dd, lv, v);
 
 
-dd_collect_state(dd, state_local, state);
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  copy data from `state_local' to `state'
+### dd_collect_state(dd, state_local, state);
 
-  on the master node, copy veta, box, boxv
+  Copy data from `state_local` to `state`.
+  Here `state` means the global state.
 
-  dd_collect_vec(dd, state_local->x, state->x);
+  On the master node, copy the following data to the global state
+    * lambda[efptNR]
+    * fep_state
+    * veta
+    * box
+    * boxv
+    * svir_prev
 
+  Collect vectors
+    * dd_collect_vec(dd, state_local->x, state->x);
+
+    * dd_collect_vec(dd, state_local->v, state->v);
+
+    * The variable `est` goes from 0 to estNR,
+      EST_DISTR(e) is true for
+        estX, estV, estSDX, estCGP, estLD_RNG, estLD_RNGI,
+        estDISRE_INITF, estDISRE_RM3TAV,
+        estORIRE_INITF, estORIRE_DTAV
+      it is further filtered by state_local->flags.
+
+    * For a usual simulation, state_local->flags is set for
+        estBOX, estTC_INT, estX, estV
 
 
 
@@ -77,15 +160,15 @@ gmx_ddzone_t;
 gmx_domdec_comm_t;
 
 
-dd = init_domain_decomposition(cr, nc)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+### dd = init_domain_decomposition(cr, nc)
+
   copy_ivec(nc, dd->nc);
   dd_choose_grid(dd);
 
 
 
-dd_choose_grid(dd)
-~~~~~~~~~~~~~~~~~~
+### dd_choose_grid(dd)
+
 defined in domdec_setup.c
 
     if (cr->nnodes <= 10)
@@ -104,8 +187,8 @@ defined in domdec_setup.c
 
 
 
-make_dd_communicators()
-~~~~~~~~~~~~~~~~~~~~~~~~
+### make_dd_communicators()
+
   copy_ivec(dd->nc, comm->ntot);
   if (cr->npmenodes > 0)
     split_communicator(cr);
@@ -118,8 +201,8 @@ make_dd_communicators()
 
 
 
-split_communicator()
----------------------
+### split_communicator()
+
   periods[0..DIM-1] = TRUE;
   MPI_Cart_create(cr->mpi_comm_mysim, DIM, comm->ntot, periods,
     reorder, &comm_cart);
@@ -132,9 +215,41 @@ split_communicator()
     dd_index(comm->ntot, dd->ci), &cr->mpi_mygroup);
 
 
-make_pp_communicator()
-------------------------
+### make_pp_communicator()
+
   MPI_Cart_create(cr->mpi_comm_mygroup, DIM, dd->nc, periods,
                   &comm_cart);
   cr->mpi_comm_mygroup = comm_cart;
 
+
+### dd_partition_system()
+
+Defined in gromacs/mdlib/domdec.c
+
+The fourth parameter `bMasterState` means
+if `state_global` is good on the master node.
+
+Three switches (on line 9465)
+```
+if (bMasterState) {
+  set_ddbox();
+  get_cg_distribution();
+  dd_distribute_state(); /* distribute coordinates here */
+} else if (state_local->ddp_count < dd->ddp_count) {
+  clear_dd_indices();
+  rebuild_cgindex();
+  make_dd_indices();
+  set_ddbox();
+} else {
+  clear_dd_indices();
+  set_ddbox();
+}
+``
+
+
+### dd_distribute_state()
+
+Defined in gromacs/mdlib/domdec.c
+
+Copy information from state (state_global) to state_local
+state_local->x

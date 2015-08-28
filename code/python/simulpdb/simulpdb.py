@@ -13,7 +13,6 @@ import gmxcom
 
 
 
-d2g = math.pi/180   # degree to radian
 fntop = "topol.top" # default topology file
 
 nsteps_warmup = 100 # number of steps during 300K warm up simulation

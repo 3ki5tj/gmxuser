@@ -3,9 +3,9 @@ t_state
 
 Source files
 ------------
-include/type/state.h
-gmxlib/typedefs.h
-gmxlib/tpxio.h
+* include/type/state.h (legacyheaders/types/state.h)
+* gmxlib/typedefs.h
+* gmxlib/tpxio.h
 
 
 
@@ -39,7 +39,7 @@ Functions
 
 Initialization
 ~~~~~~~~~~~~~~
-snew(state, 1);
+snew(state, 1);  in runner.c
 * read_tpx_state(fn, inputrec, state, NULL, mtop);  in gmxlib/tpxio.c
   * do_tpx(ir, state, mtop);  in gmxlib/tpxio.c
     * init_state(state, natoms, ngtc, nnhpres, nhchainlength);  in gmxlib/typedefs.c

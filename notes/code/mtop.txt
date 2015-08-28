@@ -1,0 +1,75 @@
+
+## Files
+
+types/topology.h
+types/atoms.h
+
+
+
+## Structures
+
+
+### gmx_top_t, gmx_moltype_t, gmx_molblock_t
+
+```
+typedef struct {
+  char **name;
+  gmx_ffparams_t ffparams;
+  int nmoltype;
+  gmx_moltype_t *moltype;
+  int nmolblock;
+  gmx_molblock_t *molblock;
+  ...
+} gmx_mtop_t;
+```
+
+
+```
+typedef struct {
+  char **name;
+  t_atoms atoms;
+  t_ilist ilist[F_NAME];
+  ...
+} gmx_moltype_t;
+```
+
+
+```
+typedef struct {
+  int type; /* point to mtop.moltype[] */
+  int nmol; /* number of instances */
+  int natoms_mol; /* number of atoms in each molecule
+                     equal to mtop.moltype[type].atoms.nr */
+} gmx_molblock_t;
+```
+
+
+### t_atoms, t_atom, t_resinfo
+
+```
+typedef struct {
+  int nr;
+  t_atom *atom;
+  char ***atomname;
+  char ***atomtype;
+  int nres;
+  t_resinfo *resinfo;
+} t_atoms;
+```
+
+```
+typedef struct {
+  real m, q;
+  unsigned short type;
+  char elem[4];
+} t_atom;
+```
+
+```
+typedef struct {
+  char **name;
+  int nr; /* residue number */
+  int chainnum;
+  int chainid;
+} t_resinfo;
+

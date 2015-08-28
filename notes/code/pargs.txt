@@ -10,10 +10,19 @@ Source files
 src/gromacs/commandline/pargs.h
 src/gromacs/commandline/pargs.cpp
 
+Related files
+-------------
+
+src/gromcas/fileio/filenm.h
+src/gromcas/fileio/filenm.c
+
 
 
 Functions
 =========
+
+parse_common_args()
+--------------------
 
 ```
 parse_common_args(argc, argv, flags,
@@ -22,4 +31,31 @@ parse_common_args(argc, argv, flags,
                   ndesc, desc,
                   nbugs, bugs
                   oenv);
+```
+
+
+
+opt2fn()
+---------
+
+fn = opt2fn(opt, nfile, fnm);
+
+* The constants efMDP, efLOG, efXVG, efDAT, ...
+  are defined in `src/gromacs/fileio/filenm.h`.
+
+* The corresponding extensions are defined
+  in `deffile[efNR]` in `src/gromacs/fileio/filenm.h`.
+
+
+The variable `fnm` is an array of type `t_filenm`.
+
+```
+typedef struct {
+    int           ftp;        /* e.g., cfCPT    */
+    const char   *opt;        /* e.g., "-cpi"   */
+    const char   *fn;         /* e.g., "confout" */
+    unsigned long flag;       /* ffREAD */
+    int           nfiles;
+    char        **fns;
+} t_filenm;
 ```

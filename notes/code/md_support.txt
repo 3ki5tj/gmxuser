@@ -1,0 +1,15 @@
+# File
+
+gromacs/mdlib/md_support.c
+gromacs/legacyheaders/md_support.h
+
+
+# Functions
+
+## compute_globals()
+
+ *  global_stat()
+      o Synchronization: sum data from different nodes
+      o Defined in gromacs/mdlib/stat.c
+ *  do_stopcm_grp()
+ *  sum_skin
