@@ -37,6 +37,63 @@ Note it is contained in `cr->dd`.
 
 ```
 struct gmx_domdec_t {
+    int                    nnodes;
+    MPI_Comm               mpi_comm_all;
+    int                    rank;
+    int                    masterrank;
+
+    ivec  nc;   /* number of cells along each direction */
+    int   ndim; /* how many dimensions are involved in DD */
+    ivec  dim;  /* dim[0..ndim-1]; so dim[d] gives the actual dimension */
+
+    gmx_domdec_master     *ma; /* Only available on the master node */
+    
+    /* The local to gobal charge group index and local cg to local atom index */
+    int   ncg_home;
+    int   ncg_tot;
+    int  *index_gl;
+    int  *cgindex;
+
+    int   nat_home; /* The number of home atoms */
+    int   nat_tot; /* The total number of atoms: home and received zones */
+    int  *gatindex; /* Index from the local atoms to the global atoms */
+    int   gatindex_nalloc;
+
+    /* Global atom number to local atom number list */
+    gmx_ga2la_t ga2la;
+};
+```
+
+### `dd->nc`
+
+```
+static void ddindex2xyz(ivec nc, int ind, ivec xyz)
+{
+  xyz[XX] = ind % nc[XX];
+  xyz[YY] = (ind / nc[XX]) % nc[YY];
+  xyz[ZZ] = ind / (nc[YY]*nc[XX]);
+}
+```
+
+### `gmx_domdec_master`
+
+```
+typedef struct gmx_domdec_master
+{
+    /* The cell boundaries */
+    real **cell_x;
+    /* The global charge group division */
+    int   *ncg;    /* Number of home charge groups for each node */
+    int   *index;  /* Index of nnodes+1 into cg */
+    int   *cg;     /* Global charge group index */
+    int   *nat;    /* Number of home atoms for each node. */
+    int   *ibuf;   /* Buffer for communication */
+    rvec  *vbuf;   /* Buffer for state scattering and gathering */
+} gmx_domdec_master_t;
+```
+
+```
+struct gmx_domdec_t {
   MPI_Comm mpi_comm_all;
   int rank;
   /* global atom index to local index */
@@ -89,17 +146,19 @@ the complete vector in the end,
 the local vector only does the sending.
 
   if ( !DDMASTER(dd) ) {
-    /* send to the master */
-    MPI_Send(lv, ..., DDMASTER(dd), ...);
+    /* slave sends `dd->nat_home` vectors to the master */
+    MPI_Send(lv, dd->nat_home*sizeof(rvec), MPI_BTYE,
+             DDMASTERRANK(dd), ...);
   } else {
-    /* copy data on this node */
-    copy_rvec(lv, v);
+    /* copy data on the master node: v[c] = lv[a++] */
+    copy_rvec(lv[a++], v[c]);
 
     /* loop node by node */
-    for (; n < dd->nnodes;)
-      MPI_Recv(buf, ..., n, ...);
-      /* copy from buf to v */
-      copy_rvec(buf, v);
+    for (n = 0; n < dd->nnodes; n++) {
+      MPI_Recv(buf, ma->nat[n]*sizeof(rvec), MPI_BYTE, n, ...);
+      /* copy from buf to v: v[c] = buf[a++] */
+      copy_rvec(buf[a++], v[c]);
+    }
   }
 
 
@@ -110,30 +169,41 @@ Collect local vector `lv` such that in the end
 the master node has the complete vector `v`.
 
     dd_collect_cg(dd, state_local);
-    dd_collect_vec_sendrecv(dd, lv, v);
-  or
-    dd_collect_vec_gatherv(dd, lv, v);
 
+  if (dd->nnodes <= GMX_DD_NNODES_SENDRECV) { /* GMX_DD_NNODES_SENDRECV = 4 */
+    dd_collect_vec_sendrecv(dd, lv, v);
+  } else {
+    dd_collect_vec_gatherv(dd, lv, v);
+  }
+  
 
 ### dd_collect_state(dd, state_local, state);
 
-  Copy data from `state_local` to `state`.
-  Here `state` means the global state.
+  Defined in `gromacs/mdlib/domdec.c`
 
-  On the master node, copy the following data to the global state
+  Copy data from `state_local` to `state` (global state on the master).
+
+  On the master node, manually copy the following data
+  from `state_local` to `state` (global state)
     * lambda[efptNR]
     * fep_state
-    * veta
-    * box
-    * boxv
-    * svir_prev
+    * veta, vol0
+    * box, boxv
+    * svir_prev, fvir_prev, pres_prev
+    * nosehoover_xi[], nosehoover_vxi[]
+    * nhpres_xi[], nhpres_vxi[]
 
-  Collect vectors
-    * dd_collect_vec(dd, state_local->x, state->x);
+  Collect vectors from different nodes
+    * dd_collect_vec(dd, state_local, state_local->x, state->x);
+    * dd_collect_vec(dd, state_local, state_local->v, state->v);
+    * dd_collect_vec(dd, state_local, state_local->sd_X, state->sd_X);
+    * dd_collect_vec(dd, state_local, state_local->cg_p, state->cg_p);
 
-    * dd_collect_vec(dd, state_local->v, state->v);
+    * The number of atoms is assumed to be saved in
+      `dd->nat_home` and `dd->ma->nat[n]`
 
-    * The variable `est` goes from 0 to estNR,
+    * The copying of the above quantities are done in a loop over `est`
+      The variable `est` goes from 0 to estNR,
       EST_DISTR(e) is true for
         estX, estV, estSDX, estCGP, estLD_RNG, estLD_RNGI,
         estDISRE_INITF, estDISRE_RM3TAV,
@@ -226,25 +296,135 @@ defined in domdec_setup.c
 
 Defined in gromacs/mdlib/domdec.c
 
-The fourth parameter `bMasterState` means
-if `state_global` is good on the master node.
+The fourth parameter `bMasterState` is explained below
+
+  * If `bMasterState == TRUE`, `state_global` is good on the master node,
+    but `state_local` can be messy.
+ 
+  * If `bMasterState == FALSE`, `state_local` is fine (roughly).
+
+This function is used in the MD main loop in `md.c`
+
+  * bMasterState is TRUE in the call near the end of the MD step.
+
+  * In the neighbor-search step, bMasterState is usually FALSE,
+    unless the box is dynamic, and it becomes too skrewed and
+    a correction to box is made.
+    Note it is then `dd_collect_state()` will be called.
+
 
 Three switches (on line 9465)
 ```
 if (bMasterState) {
+  /* enters this branch near the end of MD step */
+
+  clear_dd_indices(dd, 0, 0);
   set_ddbox();
   get_cg_distribution();
-  dd_distribute_state(); /* distribute coordinates here */
+
+  /* distribute coordinates here
+     from `state` (global state) to `state_local` */
+  dd_distribute_state();
+
 } else if (state_local->ddp_count < dd->ddp_count) {
-  clear_dd_indices();
+  clear_dd_indices(dd, 0, 0);
   rebuild_cgindex();
   make_dd_indices();
   set_ddbox();
+
 } else {
-  clear_dd_indices();
+  /* enters this branch in the neighbor-search branch */
+
+  clear_dd_indices(dd, dd->ncg_home, dd->nat_home);
   set_ddbox();
+
+  bBoxChanged = TRUE;
+  bRedist = TRUE; /* request sorting of charge groups */
 }
-``
+```
+
+Then we have
+
+```
+set_dd_cell_sizes();
+
+if ( bRedist ) {
+  /* distribute charge groups, calls `calc_cg_move(state_local)` */
+  dd_redistribute_cg(stat_local);
+}
+
+/* compute `cell_ns_x0[0..2]` and `cell_ns_x1[0..2]` */
+get_nsgrid_boundaries(cell_ns_x0, cell_ns_x1);
+
+if ( bBoxChanged ) {
+  comm_dd_ns_cell_sizes();
+}
+
+if ( bSortCG ) {
+  ...
+  dd_sort_state(state_local); 
+}
+
+setup_dd_communication();
+
+make_dd_indices();
+
+set_cg_boundaries();
+
+dd_make_local_top(top_local);
+
+state_local->natoms = comm->nat[ddnatNR-1];
+dd_realloc_state(state_local, f, state_local->natoms);
+
+atoms2md(dd->gaindex, dd->nat_home, mdatoms);
+
+if ( (cr->duty & DUTY_PME) == 0 ) {
+  gmx_pme_send_parameters();
+}
+
+```
+
+
+
+### clear_dd_indices(dd, ncg0, nat0)
+
+delete local indices from `ncg0` for charge groups and `nat0` for atoms
+
+
+### dd_redistribute_cg()
+
+* calc_cg_move(state, move)
+
+
+### calc_cg_move(state, move)
+
+defined in `mdlib/domdec.c`
+
+* for each charge group compute the center of mass `cm_new`.
+
+* set dev[0..2] to represent if it crosses the cell boundary;
+  dev[d] = 1 for overflow, or -1 for underflow
+  (line 4519, line 4546).
+
+* wrap the coordinates into the box (lines 4566-4584).
+
+* cg_cm[cg] = cm_new
+
+* compute `mc` and `flag`
+  o `flag` is a combination of DD_FLAG_FW(d) or DD_FLAG_BW(d) for each dimension d
+  o `mc` is equal to `d*2` or `d*2 + 1` for
+    the lowest dimension that requires a move
+  o if the charge group `cg` is fine, `flag = 0, mc = -1;`
+
+* move[cg] = mc + flag;
+  o if `move[cg] < 0`, don't move it
+
+
+### dd_sort_state(state)
+
+* order_vec_atom();
+* dd->nat_home = dd->cgindex[dd->ncg_home];
+
 
 
 ### dd_distribute_state()

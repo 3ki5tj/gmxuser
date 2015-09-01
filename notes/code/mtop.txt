@@ -4,6 +4,9 @@
 types/topology.h
 types/atoms.h
 
+mtop_util.h
+gromacs/gmxlib/mtop_util.c
+
 
 
 ## Structures
@@ -46,6 +49,8 @@ typedef struct {
 
 ### t_atoms, t_atom, t_resinfo
 
+`legacyheaders/types/atoms.h`
+
 ```
 typedef struct {
   int nr;
@@ -61,6 +66,7 @@ typedef struct {
 typedef struct {
   real m, q;
   unsigned short type;
+  int resind;
   char elem[4];
 } t_atom;
 ```
@@ -72,4 +78,19 @@ typedef struct {
   int chainnum;
   int chainid;
 } t_resinfo;
+```
 
+
+## Functions
+
+
+### top = gmx_mtop_generate_local_top(mtop, ir);
+
+* called in `md.c`, defined in `gromacs/gmxlib/mtop_util.c`
+
+### gen_local_top(mtop, ir, TRUE top);
+
+* copy atomtypes
+* copy parameters from `mtop->ffparams` to `top->idef`
+* concatenate charge groups `top->cgs`
+* concatenate `top->exls`

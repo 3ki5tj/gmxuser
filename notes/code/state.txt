@@ -4,33 +4,37 @@ t_state
 Source files
 ------------
 * include/type/state.h (legacyheaders/types/state.h)
-* gmxlib/typedefs.h
-* gmxlib/tpxio.h
+* gmxlib/typedefs.c
+* gmxlib/tpxio.c
 
 
 
 Structure
 ----------
+
+```
 typedef struct {
   int natoms;
   int ngtc; /* # of thermostats === # of Nose-Hoover chains */
   int nnhpres;
   int nhchainlength; /* # of harmonic oscillators in each Nose-Hoover chain */
-  int nrng, nrngi;
   int flags;
-  real lambda;
+  int fep_state;
+  real *lambda; /* 0..efptNR-1 */
   matrix box, box_rel, boxv;
   matrix pres_prev, svir_prev, fvir_prev;
-  double nosehoover_xi[ngtc*nhchainlength];
-  double nosehoover_vxi[ngtc*nhchainlength];
-  double nhpres_xi[nnhpres*nhchainlength]; /* for Nose-Hoover pressure coupling */
-  double nhpres_vxi[nnhpres*nhchainlength]; /* for Nose-Hoover pressure coupling */
-  double therm_integral[ngtc];
+  double *nosehoover_xi; /* 0..ngtc*nhchainlength - 1 */
+  double *nosehoover_vxi; /* 0..ngtc*nhchainlength -1 */
+  double *nhpres_xi; /* 0..nnhpres*nhchainlength - 1, for Nose-Hoover pressure coupling */
+  double *nhpres_vxi; /* 0..nnhpres*nhchainlength - 1, for Nose-Hoover pressure coupling */
+  double *therm_integral; /* 0..ngtc - 1 */
+  real veta, vol0;
   int nalloc;
   rvec *x, *v, *sd_X, *cg_p;
-  unsigned int *ld_rng;
-  int *ld_rngi;
+  ...
 } t_state;
+```
+
 
 
 
@@ -39,7 +43,9 @@ Functions
 
 Initialization
 ~~~~~~~~~~~~~~
+
 snew(state, 1);  in runner.c
+
 * read_tpx_state(fn, inputrec, state, NULL, mtop);  in gmxlib/tpxio.c
   * do_tpx(ir, state, mtop);  in gmxlib/tpxio.c
     * init_state(state, natoms, ngtc, nnhpres, nhchainlength);  in gmxlib/typedefs.c
@@ -55,6 +61,13 @@ snew(state, 1);  in runner.c
   no network calls, nnodes is used as a multiple of ld_rng entries
 
   call init_gtc_state(state) again;  in gmxlib/typedefs.c
+
+
+* `state = serial_init_local_state(state_global);`
+
+  For serial runs (which, however, allows several OMP threads).
+  returns a local state, basically copies everything in `state_global`.
+  Thus, `state->x` is the same as `state_global`.
 
 * done_state(state);
   free state->x, ->v, ->sd_X, ->cg_p, ->cg_gl;

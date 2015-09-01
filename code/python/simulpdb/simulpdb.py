@@ -552,7 +552,9 @@ def mkmdmdp(nsteps, charge, solvent = None,
   for k in params: d[k] = params[k]
 
   if gmxver >= 50000:
-    d["cutoff-scheme"] = "group"
+    d["cutoff-scheme"] = "verlet"
+    d["rvdw"] = "1.2"
+    d["rvdw_switch"] = "0.9"
 
   if solvent == "implicit":
     d["implicit_solvent"] = "GBSA"
@@ -589,7 +591,8 @@ def mkmdmdp(nsteps, charge, solvent = None,
 
     # create seperate groups
     for grp in ("xtc_grps", "tc-grps", "energygrps"):
-      d[grp] = "Protein SOL " + iongrp
+      #d[grp] = "Protein SOL " + iongrp
+      d[grp] = "System"
       ngrp = len( d[grp].strip().split() )
 
     d["ref_t"] = ' '.join( [str(Tref), ] * ngrp )
@@ -612,7 +615,7 @@ def mkemmdp(pd):
   }
   global gmxver
   if gmxver >= 50000:
-    d["cutoff-scheme"] = "group"
+    d["cutoff-scheme"] = "verlet"
   if pd: d["ns_type"] = "simple"
   return gmxcom.mkmdp(d)
 

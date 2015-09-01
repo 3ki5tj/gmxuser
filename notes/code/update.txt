@@ -1,0 +1,22 @@
+## Functions ##
+
+### get_xprime() ###
+
+* reallocate the memory of `upd->xp`, if necessary, to contain at least `state->nalloc`
+* return `upd->xp`
+
+
+### update_coords() ###
+
+* get_xprime() to allocate necessary memory.
+* force = f;
+* do_update_md(force);
+
+
+### do_update_md() ###
+
+* Three branch, usually goes to the last branch on line 232 (with v-rescale).
+
+* v[n][d] = lg * v[n][d] + f[n][d] * invmass[n] * dt;
+  xprime[n][d] = x[n][d] + xn * dt;
+

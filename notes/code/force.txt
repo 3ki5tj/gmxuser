@@ -1,0 +1,60 @@
+## Functions ##
+
+
+### do_force_lowlevel() ###
+
+gromacs/mdlib/force.c
+
+* do_walls()
+* calc_gb_rad()
+* do_nonbonded()
+* calc_gb_forces()
+* set_pbc_dd() // apply period boundary condition
+* calc_bonds()
+
+
+### set_pbc_dd() ###
+
+defined in gromacs/gmxlib/pbc.c
+
+* calls low_set_pbc()
+
+Note `pbc_dx(pbc, x1, x2, dx)` in the same file is useful in computing
+the displacement between vectors.
+
+If all atoms are in the unit cell, a cheaper version is
+`pbc_dx_aiuc(pbc, x1, x2, dx)`
+
+
+Another useful function is `pbc_rvec_sub(pbc, xi, xj, dx)`
+which calls `pbc_dx_aiuc()`
+
+
+```
+pbc->box[i][j]
+pbc->hbox_diag[i]
+```
+
+
+### low_set_pbc() ###
+
+defined in gromacs/gmxlib/pbc.c
+
+
+### calc_bonds() ###
+
+gromacs/gmxlib/bondfree.c
+
+* calls calc_one_bond()
+
+### calc_one_bond() ###
+
+* calls interaction_function[ftype].ifunc();
+
+### interaction_function[ftype].ifunc ###
+
+defined in gromacs/gmxlib/ifunc.c
+
+
+### bonds() ###
+

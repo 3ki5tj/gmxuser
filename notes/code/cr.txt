@@ -60,10 +60,14 @@ typedef struct {
 
 Macros
 ----------
-#define MASTER(cr)         (cr->nodeid == 0)
-#define SIMMASTER(cr)      (MASTER(cr) && ((cr)->duty & DUTY_PP))
-#define PAR(cr)            ((cr)->nnodes > 1)
 
+#define MASTER(cr)         (cr->nodeid == 0)
+
+#define SIMMASTER(cr)      (MASTER(cr) && ((cr)->duty & DUTY_PP))
+
+#define PAR(cr)            ((cr)->nnodes > 1)
+                            Note even with OMP threads, if `cr->nnodes == 1`
+                            it is not counted as parallel by `PAR(cr)`.
 
 
 
