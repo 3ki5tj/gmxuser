@@ -616,7 +616,11 @@ def mkemmdp(pd):
   global gmxver
   if gmxver >= 50000:
     d["cutoff-scheme"] = "verlet"
-  if pd: d["ns_type"] = "simple"
+    # rvdw must be the same as rcoulomb
+    d["rvdw"] = 1.2
+    d["rcoulomb"] = 1.2
+  if pd:
+    d["ns_type"] = "simple"
   return gmxcom.mkmdp(d)
 
 

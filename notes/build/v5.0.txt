@@ -11,8 +11,10 @@ Overview
 
 Clone the git source
 ====================
+
 cd ~/work/gmx
 git clone git://git.gromacs.org/gromacs.git gromacs5.0
+cd gromacs5.0
 git checkout release-5-0
 
 
@@ -20,13 +22,14 @@ build v5.0 (float, shared, 32-bit)
 ===================================
 build fftw first (see build.txt)
 
+```
 mkdir buildgcc32 && cd buildgcc32
 cmake .. -DCMAKE_C_COMPILER=gcc \
   -DCMAKE_CXX_COMPILER=g++ \
   -DCMAKE_INCLUDE_PATH=$HOME/work/gmx/fftw/app32/include \
   -DCMAKE_LIBRARY_PATH=$HOME/work/gmx/fftw/app32/lib
 make
-
+```
 
 Lonestar
 ========
@@ -56,3 +59,16 @@ mkdir buildiccdbl && cd buildiccdbl
   -DGMX_GIT_VERSION_INFO=OFF
 make
 
+
+
+Stampede
+=========
+
+Building GROMACS on stampede is easier, since it has okay versions for FFTW3 and cmake
+
+First follow the procedue for cloning the repository
+```
+mkdir buildicc && cd buildicc
+module load intel/15.0.2 fftw3 cmake boost-mpi
+cmake .. -DCMAKE_CC_COMPILER=icc -DCMAKE_CXX_COMPILER=icpc
+```

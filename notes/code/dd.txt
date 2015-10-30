@@ -47,7 +47,7 @@ struct gmx_domdec_t {
     ivec  dim;  /* dim[0..ndim-1]; so dim[d] gives the actual dimension */
 
     gmx_domdec_master     *ma; /* Only available on the master node */
-    
+
     /* The local to gobal charge group index and local cg to local atom index */
     int   ncg_home;
     int   ncg_tot;
@@ -175,7 +175,7 @@ the master node has the complete vector `v`.
   } else {
     dd_collect_vec_gatherv(dd, lv, v);
   }
-  
+
 
 ### dd_collect_state(dd, state_local, state);
 
@@ -300,7 +300,7 @@ The fourth parameter `bMasterState` is explained below
 
   * If `bMasterState == TRUE`, `state_global` is good on the master node,
     but `state_local` can be messy.
- 
+
   * If `bMasterState == FALSE`, `state_local` is fine (roughly).
 
 This function is used in the MD main loop in `md.c`
@@ -362,7 +362,7 @@ if ( bBoxChanged ) {
 
 if ( bSortCG ) {
   ...
-  dd_sort_state(state_local); 
+  dd_sort_state(state_local);
 }
 
 setup_dd_communication();

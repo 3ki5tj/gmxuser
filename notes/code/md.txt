@@ -13,10 +13,33 @@ do_md() function
   * on lines 693-1889 (v4.5).
 
 
+Review of integrators
+---------------------
+
+### leapfrog integrators
+
+ v += (f/m) dt
+ x += v dt
+
+This is what `update_coords()` does.
+
+
+### velocity-verlet integrators
+
+ v += (f/m) (dt/2)      etrtVELOCITY2
+ x += v dt              etrtPOSITIION
+ v += (f/m) (dt/2)      etrtVELOCITY1
+
+
+
 Flow of main steps
 -------------------
 
  *  `do_force()`
+ *  `if (bVV) update_coords( etrtVELOCITY1 )`
+     o  `do_update_vv_vel()`
+     o  second half VV step of the previous step
+     o  v += (f/m) dt/2
  *  `do_md_trajectory_writing()`
      o  defined in `gromacs/fileio/trajectory_writing.c`
      o  calls `mdoutf_write_to_trajectory_files()`
@@ -34,9 +57,20 @@ Flow of main steps
  *  `update_tcouple()`
      o  compute the velocity scaling factor, `ekind->tcstat[i].lambda`
      o  doesn't actually touch the velocity array
- *  `update_coords()`
-     o  update velocity (overwrite), apply the scaling factor, and add the accelecration
-     o  update coordinates, save the new coordinates to `xprime`, which is `upd->xp`
+ *  `if (bVV) update_coords( etrtVELOCITY2 )`
+     o  `do_update_vv_vel()`
+     o  first half VV step of this step
+     o  v += (f/m) dt/2
+ *  `update_coords( etrtPOSITION )`
+     o  for leapfrog:
+        *   `do_update_md()`
+        *   v += (f/m) dt
+        *   x += v dt
+        *   update velocity (overwrite), apply the scaling factor, and add the accelecration
+        *   update coordinates, save the new coordinates to `xprime`, which is `upd->xp`
+     o  for VV:
+        *   `do_update_vv_pos()`
+        *   x += v dt
  *  `update_constraints()`
 
 
@@ -100,4 +134,6 @@ reset_all_counters() function
 * static function
 * reset `wcycle` properties
 * set `step_rel` to 0.
+
+
 
