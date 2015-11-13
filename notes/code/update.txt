@@ -13,6 +13,7 @@
 * do_update_md(force);
 
 
+
 ### do_update_md() ###
 
 * Three branch, usually goes to the last branch on line 232 (with v-rescale).
@@ -20,3 +21,48 @@
 * v[n][d] = lg * v[n][d] + f[n][d] * invmass[n] * dt;
   xprime[n][d] = x[n][d] + xn * dt;
 
+
+
+### calc_ke_part_normal() ###
+
+* compute the kinetic energy for each temperature-coupling group `gt`
+
+* The function actually computes a tensor of the velocities `vi * vj`
+  the temporary variable name for this tensor (3x3 matrix) is `ekin_sum[gt]`
+
+* The center of mass velocity is subtracted.
+
+```
+hm   = 0.5*md->massT[n];
+v_corrt[d] = v[n][d]  - grpstat[ga].u[d];
+for (d = 0; (d < DIM); d++)
+    for (m = 0; (m < DIM); m++)
+        ekin_sum[g][m][d] += hm*v_corrt[m]*v_corrt[m];
+```
+
+* The value of `ekin_sum[gt]` is added to either `tcstat[g].ekinf`
+  (the full-step version) if `bEkinAveVel` is true
+  or to `tcstat[g].ekinh` (the half-step version).
+
+
+
+### calc_ke_part() ###
+
+* usually calls `calc_ke_part_normal()`
+
+
+
+### update_tcouple() ###
+
+* decide if to do temperature coupling or not
+  depending on the frequency `inputrec->nsttcouple`
+  this value is saved in `bTCouple`
+
+* call one the following
+
+  o `berendsen_tcoupl()`
+  o `nosehoover_tcoupl()`
+  o `vrescale_tcoupl()`
+
+* In the velocity-verlet case, velocities are rescaled.
+  `rescale_velocities()`

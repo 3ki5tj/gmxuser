@@ -18,29 +18,134 @@ Review of integrators
 
 ### leapfrog integrators
 
- v += (f/m) dt
- x += v dt
+1. f = force(x)
+2. thermostat(v)
+3. v += (f/m) dt
+4. x' = x + v dt
+5. x = x' (with constraints)
 
-This is what `update_coords()` does.
+Steps 3 and 4 are what `update_coords()` does.
 
 
 ### velocity-verlet integrators
 
- v += (f/m) (dt/2)      etrtVELOCITY2
- x += v dt              etrtPOSITIION
- v += (f/m) (dt/2)      etrtVELOCITY1
+1. thermostat(v)
+2. v += (f/m) (dt/2)      etrtVELOCITY2
+3. x += v dt              etrtPOSITIION
+--------------------------------------- MD step boundary in the code
+4. f = force(x)
+5. v += (f/m) (dt/2)      etrtVELOCITY1
+6. thermostat(v)
 
 
 
-Flow of main steps
--------------------
+Flow of main steps for VV
+--------------------------
 
  *  `do_force()`
- *  `if (bVV) update_coords( etrtVELOCITY1 )`
+
+     o  line 1088 of V5.0
+
+
+ *  `update_coords( etrtVELOCITY1 )`
+
+     o  line 1131 of V5.0
      o  `do_update_vv_vel()`
-     o  second half VV step of the previous step
+     o  second half VV step of the *previous* step
      o  v += (f/m) dt/2
+
+
+ *  `update_constraints()`
+
+     o  line 1178 of V5.0
+
+
+ *  `compute_globals()`
+
+     o  compute the quantities at the end of a full step
+     o  line 1224 of V5.0
+     o  defined in `gromacs/mdlib/md_support.c`
+     o  `if (bTemp)` compute the kinetic energy `calc_ke_part()`
+        the kinetic energy is saved in the full-step tensor in this case
+        which means that `bEkinAveVel = TRUE` in this case.
+     o  calls `global_stat()`
+
+         *  defined in `gromacs/mdlib/stat.c`
+
+
  *  `do_md_trajectory_writing()`
+
+     o  line 1339 of V5.0
+     o  defined in `gromacs/fileio/trajectory_writing.c`
+     o  calls `mdoutf_write_to_trajectory_files()`
+
+         *  defined in `gromacs/fileio/mdoutf.c`.
+         *  collect state, x, v, f.
+         *  Below are important calls.
+         *  dd_collect_state(state_local, state_global);
+            on the master, state_global->x, ->v, ->box is syncronized
+            or alternatively
+              dd_collect_vec(state_local->x, state_global->x);
+              dd_collect_vec(local_v, global_v);
+            where local_v  == state_local->v,
+                  global_v == state_global->v
+         *  dd_collect_vec(f_local, f_global);
+
+
+ *  `update_tcouple()`
+
+     o  line 1453 of V5.0
+     o  defined in `mdlib/update.c`
+     o  compute the velocity scaling factor, `ekind->tcstat[i].lambda`
+     o  since this is velocity verlet case, velocity are rescaled
+        by calling `rescale_velocities()` defined in `mdlib/coupling.c`
+
+
+ *  `update_randomize_velocities()`
+
+     o  line 1458 of V5.0
+     o  Andersen thermostat
+
+--------- Finishing up the previous step ----------------------
+
+ *  `update_tcouple()`
+
+     o  line 1531 of V5.0
+     o  rescale velocities in place
+
+
+ *  `update_coords( etrtVELOCITY2 )`
+
+     o  line 1540 of V5.0
+     o  `do_update_vv_vel()`
+     o  first half VV step of this step
+     o  v += (f/m) dt/2
+
+
+ *  `update_coords( etrtPOSITION )`
+
+     o  line 1563 of V5.0
+     o  `do_update_vv_pos()` defined in `mdlib/update.c`
+     o  x' = x + v dt
+
+
+ *  `update_constraints()`
+
+     o  line 1568 of V5.0
+     o  x = x'
+
+
+
+Flow of main steps for leapfrog
+-------------------------------
+
+ *  `do_force()`
+
+     o  line 1088 of V5.0
+
+
+ *  `do_md_trajectory_writing()`
+
      o  defined in `gromacs/fileio/trajectory_writing.c`
      o  calls `mdoutf_write_to_trajectory_files()`
          *  defined in `gromacs/fileio/mdoutf.c`.
@@ -54,24 +159,27 @@ Flow of main steps
             where local_v  == state_local->v,
                   global_v == state_global->v
          *  dd_collect_vec(f_local, f_global);
+
+
  *  `update_tcouple()`
+
      o  compute the velocity scaling factor, `ekind->tcstat[i].lambda`
      o  doesn't actually touch the velocity array
- *  `if (bVV) update_coords( etrtVELOCITY2 )`
-     o  `do_update_vv_vel()`
-     o  first half VV step of this step
-     o  v += (f/m) dt/2
+        only computes the scaling factor
+
+
  *  `update_coords( etrtPOSITION )`
-     o  for leapfrog:
-        *   `do_update_md()`
-        *   v += (f/m) dt
-        *   x += v dt
-        *   update velocity (overwrite), apply the scaling factor, and add the accelecration
-        *   update coordinates, save the new coordinates to `xprime`, which is `upd->xp`
-     o  for VV:
-        *   `do_update_vv_pos()`
-        *   x += v dt
+
+     o  `do_update_md()`
+     o  v += (f/m) dt
+     o  x' = x + v dt
+     o  update velocity (overwrite), apply the scaling factor, and add the accelecration
+     o  update coordinates, save the new coordinates to `xprime`, which is `upd->xp`
+
+
  *  `update_constraints()`
+
+     o  x = x' (under constraints)
 
 
 
